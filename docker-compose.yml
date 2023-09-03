@@ -1,0 +1,33 @@
+version: "3.8"
+
+services:
+  postgres_hap_easy:
+    image: postgres:latest
+    container_name: pg_hap_easy
+    restart: always
+    ports:
+      - "5440:5432"
+    volumes:
+      - ./tmp/pg:/var/lib/postgresql/data
+    env_file:
+      - docker.env
+    networks:
+      - postgres
+  
+  pg_adminer:
+    image: adminer
+    container_name: adminer_hap_easy
+    restart: always
+    ports:
+      - "8090:8080"
+    env_file:
+      - docker.env
+    networks:
+      - postgres
+
+networks:
+  postgres:
+    driver: bridge
+
+
+    
