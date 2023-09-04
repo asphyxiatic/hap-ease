@@ -9,8 +9,8 @@ export class User extends BaseEntity {
   @Column('varchar')
   email!: string;
 
-  @Column('varchar')
-  phone?: string;
+  @Column({ default: null, type: 'varchar' })
+  phone!: string | null;
 
   @Column('varchar')
   nickname!: string;

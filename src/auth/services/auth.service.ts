@@ -30,11 +30,13 @@ export class AuthService {
 
     const hashedPassword = await bcrypt.hashSync(password, 5);
 
-    return this.userRepository.save({
+    const newUser: Partial<User> = {
       email: email,
       nickname: nickname,
       password: hashedPassword,
-    });
+    };
+
+    return this.userRepository.save(newUser);
   }
 
   async signIn({ email, password }: SignInDto): Promise<User> {
