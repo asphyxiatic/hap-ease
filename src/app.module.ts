@@ -1,18 +1,10 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import configuration from './config/configuration.js';
+
 import { DatabaseModule } from './database/database.module.js';
+import { AuthModule } from './auth/auth.module.js';
 
 @Module({
-  imports: [
-    ConfigModule.forRoot({
-      load: [configuration],
-      validationOptions:{
-        allowUnknown: false,
-        abortEarly: false,
-      }
-    }),
-    DatabaseModule,
-  ],
+  imports: [DatabaseModule, AuthModule],
 })
 export class AppModule {}

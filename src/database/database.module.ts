@@ -1,19 +1,21 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmConfigService } from '../config/typeorm.config.js';
+import { DataSource, DataSourceOptions } from 'typeorm';
 
 @Module({
   imports: [
     TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        url: configService.get<string>('database.url'),
-        entities: [],
-        migrations: ['dist/database/migrations/*.js'],
-        migrationsTableName: 'migrations_table',
-      }),
-      inject: [ConfigService],
+      useClass: TypeOrmConfigService,
+      dataSourceFactory: async (
+        options?: DataSourceOptions,
+      ): Promise<DataSource> => {
+        if (!options) {
+          throw new Error('Options for database connection is undefined');
+        }
+        const dataSource = await new DataSource(options).initialize();
+        return dataSource;
+      },
     }),
   ],
 })
