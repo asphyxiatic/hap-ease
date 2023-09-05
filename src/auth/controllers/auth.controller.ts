@@ -1,11 +1,11 @@
-import { Body, Controller, Post, Request } from '@nestjs/common';
+import { Body, Controller, Post, Request, UseGuards } from '@nestjs/common';
 import { AuthService } from '../services/auth.service.js';
 import { SignUpDto } from '../dto/sign-up.dto.js';
 import { SignInDto } from '../dto/sign-in.dto.js';
 import { SignUpResponseDto } from '../dto/sign-up-response.dto.js';
 import { SignInResponseDto } from '../dto/sign-in-response.dto.js';
 import { UpdateTokensDto } from '../dto/update-token.dto.js';
-import { Request as Req } from 'express';
+import { GetAuthToken } from '../decorators/get-auth-token.decorator.js';
 
 @Controller('auth')
 export class AuthController {
@@ -22,10 +22,9 @@ export class AuthController {
   }
 
   @Post('update-tokens')
-  async updateTokens(@Request() request: Req): Promise<UpdateTokensDto> {
-    // Временное решение
-    const refreshToken = request.headers.authorization?.split(' ')[1];
-
-    return this.authService.updateTokens(refreshToken!);
+  async updateTokens(
+    @GetAuthToken() refreshToken: string,
+  ): Promise<UpdateTokensDto> {
+    return this.authService.updateTokens(refreshToken);
   }
 }
