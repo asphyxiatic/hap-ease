@@ -1,4 +1,11 @@
-import { Body, Controller, Post, Request, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Post,
+  Request,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthService } from '../services/auth.service.js';
 import { SignUpDto } from '../dto/sign-up.dto.js';
 import { SignInDto } from '../dto/sign-in.dto.js';
@@ -26,5 +33,10 @@ export class AuthController {
     @GetAuthToken() refreshToken: string,
   ): Promise<UpdateTokensDto> {
     return this.authService.updateTokens(refreshToken);
+  }
+
+  @Delete('log-out')
+  async logOut(@GetAuthToken() refreshToken: string): Promise<void> {
+    return this.authService.logOut(refreshToken);
   }
 }

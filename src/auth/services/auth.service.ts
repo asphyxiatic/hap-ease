@@ -1,5 +1,6 @@
 import {
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -18,6 +19,7 @@ import { UsersService } from '../../users/services/user.service.js';
 import { User } from '../../users/entities/user.entity.js';
 import { UpdateTokensDto } from '../dto/update-token.dto.js';
 import { TokensService } from '../../tokens/services/token.service.js';
+import { IDecodeTokenResponse } from '../interfaces/decode-token-response.interface.js';
 
 @Injectable()
 export class AuthService {
@@ -100,15 +102,12 @@ export class AuthService {
 
   // -------------------------------------------------------------
   public async validate(accessToken: string): Promise<IValidateResponse> {
-    const decodeToken: ITokenPayload = await this.jwtService
-      .verifyAsync(accessToken, {
-        secret: config.JWT_ACCESS_SECRET_KEY,
-      })
-      .catch((error: any) => {
-        throw new UnauthorizedException('🚨 token is invalid!');
-      });
+    const { userId } = await this.decodeToken(
+      accessToken,
+      config.JWT_ACCESS_SECRET_KEY,
+    );
 
-    const user = await this.userService.findOneFor({ id: decodeToken.sub });
+    const user = await this.userService.findOneFor({ id: userId });
 
     if (!user) {
       throw new NotFoundException('🚨 user not found!');
@@ -118,26 +117,47 @@ export class AuthService {
   }
 
   // -------------------------------------------------------------
-  public async updateTokens(refreshToken: string): Promise<UpdateTokensDto> {
-    const decodeToken: ITokenPayload = await this.jwtService
-      .verifyAsync(refreshToken, { secret: config.JWT_REFRESH_SECRET_KEY })
-      .catch((error: any) => {
-        throw new UnauthorizedException('🚨 refresh_token is invalid!');
-      });
+  public async logOut(refreshToken: string): Promise<void> {
+    const { userId } = await this.decodeToken(
+      refreshToken,
+      config.JWT_REFRESH_SECRET_KEY,
+    );
 
     const refreshTokensFromDB = await this.tokensService.find({
-      userId: decodeToken.sub,
+      userId: userId,
     });
 
-    const refreshTokenIsValid = refreshTokensFromDB.find((token) => {
-      return bcrypt.compareSync(refreshToken, token.value);
+    const extractTokenFromDB = refreshTokensFromDB.find((token) =>
+      bcrypt.compareSync(refreshToken, token.value),
+    );
+
+    if (!extractTokenFromDB) {
+      throw new InternalServerErrorException('🚨 failed to log-out');
+    }
+
+    this.tokensService.delete(extractTokenFromDB.value);
+  }
+
+  // -------------------------------------------------------------
+  public async updateTokens(refreshToken: string): Promise<UpdateTokensDto> {
+    const { userId } = await this.decodeToken(
+      refreshToken,
+      config.JWT_REFRESH_SECRET_KEY,
+    );
+
+    const refreshTokensFromDB = await this.tokensService.find({
+      userId: userId,
     });
+
+    const refreshTokenIsValid = refreshTokensFromDB.find((token) =>
+      bcrypt.compareSync(refreshToken, token.value),
+    );
 
     if (!refreshTokenIsValid) {
       throw new UnauthorizedException('🚨 refresh_token is invalid!');
     }
 
-    const user = await this.userService.findOneFor({ id: decodeToken.sub });
+    const user = await this.userService.findOneFor({ id: userId });
 
     if (!user) {
       throw new NotFoundException('🚨 user not found!');
@@ -181,6 +201,23 @@ export class AuthService {
     return {
       accessToken: accessToken,
       refreshToken: refreshToken,
+    };
+  }
+
+  // -------------------------------------------------------------
+  private async decodeToken(
+    token: string,
+    secret: string,
+  ): Promise<IDecodeTokenResponse> {
+    const decodeToken: ITokenPayload = await this.jwtService
+      .verifyAsync(token, { secret: secret })
+      .catch((error: any) => {
+        throw new UnauthorizedException('🚨 token is invalid!');
+      });
+
+    return {
+      userId: decodeToken.sub,
+      email: decodeToken.email,
     };
   }
 }

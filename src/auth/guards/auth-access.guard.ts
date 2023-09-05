@@ -11,8 +11,8 @@ import { AuthService } from '../services/auth.service.js';
 export class AuthAccessGuard implements CanActivate {
   constructor(private authService: AuthService) {}
 
-  async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request: Request = context.switchToHttp().getRequest();
+  async canActivate(ctx: ExecutionContext): Promise<boolean> {
+    const request: Request = ctx.switchToHttp().getRequest();
 
     const token = this.extractTokenFromHeader(request);
 

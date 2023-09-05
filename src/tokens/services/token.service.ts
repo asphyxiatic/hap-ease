@@ -20,4 +20,10 @@ export class TokensService {
   ): Promise<Token[]> {
     return this.tokenRepository.find({ where: tokenOptions });
   }
+
+  public async delete(value: string) {
+    return this.tokenRepository.delete({
+      value: value,
+    });
+  }
 }
