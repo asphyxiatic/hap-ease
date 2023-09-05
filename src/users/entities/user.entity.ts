@@ -1,6 +1,6 @@
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn, Relation } from 'typeorm';
 import { BaseEntity } from '../../common/entities/base.entity.js';
-import { Tokens } from '../../auth/entities/token.entity.js';
+import { Token } from '../../tokens/entities/token.entity.js';
 
 const tableName = 'user';
 
@@ -21,6 +21,6 @@ export class User extends BaseEntity {
   @Column('varchar')
   password!: string;
 
-  @OneToMany(() => Tokens, (token) => token.user)
-  tokens!: Relation<Tokens[]>;
+  @OneToMany(() => Token, (token) => token.user)
+  tokens!: Relation<Token[]>;
 }

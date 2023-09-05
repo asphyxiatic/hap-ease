@@ -11,7 +11,7 @@ import { User } from '../../users/entities/user.entity.js';
 const tableName = 'token';
 
 @Entity({ name: tableName })
-export class Tokens {
+export class Token {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
