@@ -1,7 +1,10 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn, Relation } from 'typeorm';
 import { BaseEntity } from '../../common/entities/base.entity.js';
+import { Tokens } from '../../auth/entities/token.entity.js';
 
-@Entity({ name: 'user' })
+const tableName = 'user';
+
+@Entity({ name: tableName })
 export class User extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
@@ -17,4 +20,7 @@ export class User extends BaseEntity {
 
   @Column('varchar')
   password!: string;
+
+  @OneToMany(() => Tokens, (token) => token.user)
+  tokens!: Relation<Tokens[]>;
 }
