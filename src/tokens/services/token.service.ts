@@ -1,6 +1,7 @@
 import { InjectRepository } from '@nestjs/typeorm';
 import { Token } from '../entities/token.entity.js';
 import { FindOptionsWhere, Repository } from 'typeorm';
+import { InternalServerErrorException } from '@nestjs/common';
 
 export class TokensService {
   constructor(
@@ -12,18 +13,17 @@ export class TokensService {
     return this.tokenRepository.save(tokenOptions);
   }
 
-  public async find(
-    tokenOptions:
-      | FindOptionsWhere<Token>
-      | FindOptionsWhere<Token>[]
-      | undefined,
-  ): Promise<Token[]> {
+  public async find(tokenOptions: FindOptionsWhere<Token>): Promise<Token[]> {
     return this.tokenRepository.find({ where: tokenOptions });
   }
 
-  public async delete(value: string) {
-    return this.tokenRepository.delete({
-      value: value,
-    });
+  public async delete(value: string): Promise<void> {
+    try {
+      this.tokenRepository.delete({
+        value: value,
+      });
+    } catch (error) {
+      throw new InternalServerErrorException('🚨 failed to log-out!');
+    }
   }
 }

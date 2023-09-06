@@ -1,11 +1,9 @@
 import { Type } from 'class-transformer';
-import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, Length } from 'class-validator';
 
 export class SignUpDto {
-  @Type(() => String)
-  @IsString()
-  @IsNotEmpty()
   @IsEmail()
+  @IsNotEmpty()
   email!: string;
 
   @Type(() => String)
@@ -13,6 +11,7 @@ export class SignUpDto {
   @IsNotEmpty()
   nickname!: string;
 
+  @Length(8, 25)
   @Type(() => String)
   @IsString()
   @IsNotEmpty()

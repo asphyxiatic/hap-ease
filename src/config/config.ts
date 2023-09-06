@@ -8,4 +8,8 @@ export default cleanEnv(process.env, {
   APP_PORT: num({ default: 3000 }),
   JWT_ACCESS_SECRET_KEY: str(),
   JWT_REFRESH_SECRET_KEY: str(),
+  JWT_RECOVERY_SECRET_KEY: str(),
+  JWT_CONFIRMATION_SECRET_KEY: str(),
+  MAIL_TRANSPORT: str(),
+  MAIL_FROM_NAME: str(),
 });
