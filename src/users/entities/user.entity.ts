@@ -27,7 +27,7 @@ export class User extends BaseEntity {
   @Column('varchar')
   password!: string;
 
-  @Column({ type: 'varchar', default: false })
+  @Column({ type: 'bool', default: false })
   active!: boolean;
 
   @Column({ name: 'recovery_token', default: null, type: 'varchar' })

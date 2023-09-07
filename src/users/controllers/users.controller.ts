@@ -1,11 +1,12 @@
 import { Controller, Patch, Post, UseGuards } from '@nestjs/common';
-import { GetAuthToken } from '../../auth/decorators/get-auth-token.decorator.js';
 import { UsersService } from '../services/users.service.js';
 import { AuthAccessGuard } from '../../auth/guards/auth-access.guard.js';
 import { GetCurrentUser } from '../../common/decorators/get-current-user.decorators.js';
 import { IUserRequestParams } from '../../common/interfaces/user-request-params.interface.js';
+import { GetConfirmationToken } from '../decorators/get-confirmation-token.decorator.js';
+import { NotEmptyConfirmationTokenGuard } from '../guards/not-empty-confirmation-token.guard.js';
 
-@Controller()
+@Controller('users')
 export class UsersController {
   constructor(private readonly userService: UsersService) {}
 
@@ -19,8 +20,9 @@ export class UsersController {
 
   @Patch('confirmation-email')
   @UseGuards(AuthAccessGuard)
+  @UseGuards(NotEmptyConfirmationTokenGuard)
   async confirmationEmail(
-    @GetAuthToken() confirmationToken: string,
+    @GetConfirmationToken() confirmationToken: string,
   ): Promise<void> {
     return this.userService.confirmationEmail(confirmationToken);
   }
