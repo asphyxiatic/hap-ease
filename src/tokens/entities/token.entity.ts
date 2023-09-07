@@ -8,7 +8,7 @@ import {
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity.js';
 
-const tableName = 'token';
+const tableName = 'tokens';
 
 @Entity({ name: tableName })
 export class Token {

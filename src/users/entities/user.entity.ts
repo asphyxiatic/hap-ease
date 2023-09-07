@@ -8,7 +8,7 @@ import {
 import { BaseEntity } from '../../common/entities/base.entity.js';
 import { Token } from '../../tokens/entities/token.entity.js';
 
-const tableName = 'user';
+const tableName = 'users';
 
 @Entity({ name: tableName })
 export class User extends BaseEntity {
