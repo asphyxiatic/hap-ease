@@ -7,6 +7,7 @@ import { EmailModule } from '../mailer/email.module.js';
 import { JwtToolsModule } from '../jwt/jwt-tools.module.js';
 import { AuthAccessGuard } from './guards/auth-access.guard.js';
 import { NotEmptyAuthorizationGuard } from './guards/not-empty-authorization.guard.js';
+import { GoogleAuthService } from './services/google-auth.service.js';
 
 @Module({
   imports: [
@@ -16,7 +17,12 @@ import { NotEmptyAuthorizationGuard } from './guards/not-empty-authorization.gua
     forwardRef(() => UsersModule),
   ],
   controllers: [AuthController],
-  providers: [AuthService, AuthAccessGuard, NotEmptyAuthorizationGuard],
+  providers: [
+    AuthService,
+    GoogleAuthService,
+    AuthAccessGuard,
+    NotEmptyAuthorizationGuard,
+  ],
   exports: [AuthAccessGuard, AuthService],
 })
 export class AuthModule {}

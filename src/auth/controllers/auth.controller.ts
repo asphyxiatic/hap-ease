@@ -16,10 +16,15 @@ import { GetAuthToken } from '../decorators/get-auth-token.decorator.js';
 import { RecoveryPasswordDto } from '../dto/recovery-password.dto.js';
 import { UpdatePasswordDto } from '../dto/update-password.dto.js';
 import { NotEmptyAuthorizationGuard } from '../guards/not-empty-authorization.guard.js';
+import { User } from '../../users/entities/user.entity.js';
+import { GoogleAuthService } from '../services/google-auth.service.js';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly googleAuthService: GoogleAuthService,
+  ) {}
 
   @Post('sign-up')
   async signUp(@Body() credentials: SignUpDto): Promise<SignUpResponseDto> {
@@ -59,5 +64,13 @@ export class AuthController {
     @GetAuthToken() recoveryToken: string,
   ): Promise<void> {
     return this.authService.updatePassword(password, recoveryToken);
+  }
+
+  @Post('google-authentication')
+  @UseGuards(NotEmptyAuthorizationGuard)
+  async googleAuthentication(
+    @GetAuthToken() googleAccessToken: string,
+  ): Promise<User> {
+    return this.googleAuthService.authenticate(googleAccessToken);
   }
 }

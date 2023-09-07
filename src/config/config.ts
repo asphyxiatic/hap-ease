@@ -12,4 +12,6 @@ export default cleanEnv(process.env, {
   JWT_CONFIRMATION_SECRET_KEY: str(),
   MAIL_TRANSPORT: str(),
   MAIL_FROM_NAME: str(),
+  GOOGLE_AUTH_CLIENT_ID: str(),
+  GOOGLE_AUTH_CLIENT_SECRET: str(),
 });
