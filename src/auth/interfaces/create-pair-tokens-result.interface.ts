@@ -1,4 +1,4 @@
-export interface ICreateTokensResponse {
+export interface ICreateTokensResult {
   accessToken: string;
   refreshToken: string;
 }

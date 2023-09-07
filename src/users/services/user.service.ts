@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindOptions, FindOptionsWhere, Repository } from 'typeorm';
+import { FindOptionsWhere, Repository } from 'typeorm';
 import { User } from '../entities/user.entity.js';
 import { randomUUID } from 'crypto';
 import config from '../../config/config.js';
@@ -13,15 +13,14 @@ import * as bcrypt from 'bcrypt';
 import { ITokenPayload } from '../../common/interfaces/token-payload.interface.js';
 import { JwtToolsService } from '../../jwt/services/jwt-tools.service.js';
 import { EmailService } from '../../mailer/services/email.service.js';
-import { TemplatesDiscriptionEnam } from '../../mailer/enums/templates-discription.enum.js';
-import { TemplatesEnam } from '../../mailer/enums/templates.enum.js';
+import { TemplatesDiscriptionEnum } from '../../mailer/enums/templates-discription.enum.js';
+import { TemplatesEnum } from '../../mailer/enums/templates.enum.js';
 
 @Injectable()
 export class UsersService {
   private readonly saltRounds = 5;
   private readonly JWT_CONFIRMATION_SECRET_KEY =
     config.JWT_CONFIRMATION_SECRET_KEY;
-  private readonly TEMPLATES_PATH = '../../mailer/mail-templates';
 
   constructor(
     @InjectRepository(User)
@@ -88,8 +87,8 @@ export class UsersService {
 
     this.emailService.sendTemplete(
       user.email,
-      TemplatesEnam.СONFIRMATION_EMAIL,
-      TemplatesDiscriptionEnam.СONFIRMATION_EMAIL,
+      TemplatesEnum.СONFIRMATION_EMAIL,
+      TemplatesDiscriptionEnum.СONFIRMATION_EMAIL,
       context,
     );
   }

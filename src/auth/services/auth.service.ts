@@ -11,8 +11,8 @@ import config from '../../config/config.js';
 import { randomUUID } from 'crypto';
 import { SignUpResponseDto } from '../dto/sign-up-response.dto.js';
 import { SignInResponseDto } from '../dto/sign-in-response.dto.js';
-import { ICreateTokensResponse } from '../interfaces/create-pair-tokens-response.interface.js';
-import { IValidateResponse } from '../interfaces/validate-response.interface.js';
+import { ICreateTokensResult } from '../interfaces/create-pair-tokens-result.interface.js';
+import { IValidateResult } from '../interfaces/validate-result.interface.js';
 import { UsersService } from '../../users/services/user.service.js';
 import { User } from '../../users/entities/user.entity.js';
 import { UpdateTokensResponseDto } from '../dto/update-token.dto.js';
@@ -20,8 +20,8 @@ import { TokensService } from '../../tokens/services/token.service.js';
 import { JwtToolsService } from '../../jwt/services/jwt-tools.service.js';
 import { ITokenPayload } from '../../common/interfaces/token-payload.interface.js';
 import { EmailService } from '../../mailer/services/email.service.js';
-import { TemplatesEnam } from '../../mailer/enums/templates.enum.js';
-import { TemplatesDiscriptionEnam } from '../../mailer/enums/templates-discription.enum.js';
+import { TemplatesEnum } from '../../mailer/enums/templates.enum.js';
+import { TemplatesDiscriptionEnum } from '../../mailer/enums/templates-discription.enum.js';
 
 @Injectable()
 export class AuthService {
@@ -115,7 +115,7 @@ export class AuthService {
   }
 
   // -------------------------------------------------------------
-  public async validate(accessToken: string): Promise<IValidateResponse> {
+  public async validate(accessToken: string): Promise<IValidateResult> {
     const { userId } = await this.jwtToolsSerivce.decodeToken(
       accessToken,
       this.JWT_ACCESS_SECRET_KEY,
@@ -164,8 +164,8 @@ export class AuthService {
 
     this.emailService.sendTemplete(
       email,
-      TemplatesEnam.RECOVERY_PASSWORD,
-      TemplatesDiscriptionEnam.RECOVERY_PASSWORD,
+      TemplatesEnum.RECOVERY_PASSWORD,
+      TemplatesDiscriptionEnum.RECOVERY_PASSWORD,
       context,
     );
   }
@@ -285,7 +285,7 @@ export class AuthService {
   private async createPairTokens(
     userId: string,
     email: string,
-  ): Promise<ICreateTokensResponse> {
+  ): Promise<ICreateTokensResult> {
     const payloadForAccessToken: ITokenPayload = {
       sub: userId,
       email: email,

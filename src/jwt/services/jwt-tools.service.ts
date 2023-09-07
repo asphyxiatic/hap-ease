@@ -1,6 +1,6 @@
 import { JwtService } from '@nestjs/jwt';
 import { ITokenPayload } from '../../common/interfaces/token-payload.interface.js';
-import { IDecodeTokenResponse } from '../interfaces/decode-token-response.interface.js';
+import { IDecodeTokenResult } from '../interfaces/decode-token-result.interface.js';
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 
 @Injectable()
@@ -23,7 +23,7 @@ export class JwtToolsService {
   public async decodeToken(
     token: string,
     secret: string,
-  ): Promise<IDecodeTokenResponse> {
+  ): Promise<IDecodeTokenResult> {
     const decodeToken: ITokenPayload = await this.jwtService
       .verifyAsync(token, { secret: secret })
       .catch((error: any) => {

@@ -1,4 +1,11 @@
-import { Body, Controller, Delete, Patch, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthService } from '../services/auth.service.js';
 import { SignUpDto } from '../dto/sign-up.dto.js';
 import { SignInDto } from '../dto/sign-in.dto.js';
@@ -8,6 +15,7 @@ import { UpdateTokensResponseDto } from '../dto/update-token.dto.js';
 import { GetAuthToken } from '../decorators/get-auth-token.decorator.js';
 import { RecoveryPasswordDto } from '../dto/recovery-password.dto.js';
 import { UpdatePasswordDto } from '../dto/update-password.dto.js';
+import { NotEmptyAuthorizationGuard } from '../guards/not-empty-authorization.guard.js';
 
 @Controller('auth')
 export class AuthController {
@@ -24,6 +32,7 @@ export class AuthController {
   }
 
   @Post('update-tokens')
+  @UseGuards(NotEmptyAuthorizationGuard)
   async updateTokens(
     @GetAuthToken() refreshToken: string,
   ): Promise<UpdateTokensResponseDto> {
@@ -31,6 +40,7 @@ export class AuthController {
   }
 
   @Delete('log-out')
+  @UseGuards(NotEmptyAuthorizationGuard)
   async logOut(@GetAuthToken() refreshToken: string): Promise<void> {
     return this.authService.logOut(refreshToken);
   }
@@ -43,6 +53,7 @@ export class AuthController {
   }
 
   @Patch('update-password')
+  @UseGuards(NotEmptyAuthorizationGuard)
   async updatePassword(
     @Body() { password }: UpdatePasswordDto,
     @GetAuthToken() recoveryToken: string,

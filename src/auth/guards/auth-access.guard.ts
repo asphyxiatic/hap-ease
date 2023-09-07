@@ -12,7 +12,7 @@ export class AuthAccessGuard implements CanActivate {
   constructor(private authService: AuthService) {}
 
   async canActivate(ctx: ExecutionContext): Promise<boolean> {
-    const request: Request = ctx.switchToHttp().getRequest();
+    const request = ctx.switchToHttp().getRequest();
 
     const token = this.extractTokenFromHeader(request);
 
@@ -20,9 +20,15 @@ export class AuthAccessGuard implements CanActivate {
       throw new UnauthorizedException('🚨 token not found!');
     }
 
-    const { userId } = await this.authService.validate(token);
+    const user = await this.authService.validate(token);
 
-    return userId ? true : false;
+    if (!user.userId) {
+      throw new UnauthorizedException('🚨 token is invalid!');
+    }
+
+    request['user'] = user;
+
+    return true;
   }
 
   private extractTokenFromHeader(request: Request): string | undefined {

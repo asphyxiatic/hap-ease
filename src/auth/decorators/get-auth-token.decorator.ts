@@ -1,8 +1,4 @@
-import {
-  ExecutionContext,
-  NotFoundException,
-  createParamDecorator,
-} from '@nestjs/common';
+import { ExecutionContext, createParamDecorator } from '@nestjs/common';
 import { Request } from 'express';
 
 export const GetAuthToken = createParamDecorator(
@@ -10,11 +6,7 @@ export const GetAuthToken = createParamDecorator(
     const request: Request = ctx.switchToHttp().getRequest();
     const authorization = request.headers.authorization;
 
-    if (!authorization) {
-      throw new NotFoundException('🚨 refresh-token not found');
-    }
-
-    const [type, refreshToken] = authorization.split(' ');
+    const [type, refreshToken] = authorization!.split(' ');
 
     return type === 'Bearer' ? refreshToken : undefined;
   },
