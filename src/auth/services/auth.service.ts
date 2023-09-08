@@ -189,10 +189,10 @@ export class AuthService {
   public async updatePassword(
     password: string,
     recoveryToken: string,
-    email: string,
+    userId: string,
   ): Promise<void> {
     const user = await this.usersService.findOneFor({
-      email: email,
+      id: userId,
     });
 
     if (!user) {
@@ -226,11 +226,9 @@ export class AuthService {
   }
 
   // -------------------------------------------------------------
-  public async logOut(refreshToken: string, email: string): Promise<void> {
-    const user = await this.usersService.findOneFor({ email: email });
-
+  public async logOut(refreshToken: string, userId: string): Promise<void> {
     const refreshTokensFromDB = await this.tokensService.find({
-      userId: user!.id,
+      userId: userId,
     });
 
     const extractTokenFromDB = refreshTokensFromDB.find((token) =>
@@ -247,12 +245,10 @@ export class AuthService {
   // -------------------------------------------------------------
   public async refreshTokens(
     refreshToken: string,
-    email: string,
+    userId: string,
   ): Promise<UpdateTokensResponseDto> {
-    const user = await this.usersService.findOneFor({ email: email });
-
     const refreshTokensFromDB = await this.tokensService.find({
-      userId: user!.id,
+      userId: userId,
     });
 
     const refreshTokenIsValid = refreshTokensFromDB.find((token) =>
@@ -263,7 +259,13 @@ export class AuthService {
       throw new UnauthorizedException('🚨 refresh_token is invalid!');
     }
 
-    const newTokens = await this.createPairTokens(user!.id, user!.email);
+    const user = await this.usersService.findOneFor({ id: userId });
+
+    if (!user) {
+      throw new NotFoundException('🚨 user not found!');
+    }
+
+    const newTokens = await this.createPairTokens(user.id, user.email);
 
     const hashedRefreshToken = bcrypt.hashSync(
       newTokens.refreshToken,
@@ -277,9 +279,9 @@ export class AuthService {
 
     return {
       user: {
-        email: user!.email,
-        nickname: user!.nickname,
-        avatar: user!.avatar,
+        email: user.email,
+        nickname: user.nickname,
+        avatar: user.avatar,
       },
       access_token: newTokens.accessToken,
       refresh_token: newTokens.refreshToken,

@@ -40,18 +40,18 @@ export class AuthController {
   @UseGuards(RefreshTokenGuard)
   async refreshTokens(
     @GetToken('rt') refreshToken: string,
-    @GetCurrentUser() { email }: IUserRequestParams,
+    @GetCurrentUser() { userId }: IUserRequestParams,
   ): Promise<UpdateTokensResponseDto> {
-    return this.authService.refreshTokens(refreshToken, email);
+    return this.authService.refreshTokens(refreshToken, userId);
   }
 
   @Delete('log-out')
   @UseGuards(RefreshTokenGuard)
   async logOut(
     @GetToken('rt') refreshToken: string,
-    @GetCurrentUser() { email }: IUserRequestParams,
+    @GetCurrentUser() { userId }: IUserRequestParams,
   ): Promise<void> {
-    return this.authService.logOut(refreshToken, email);
+    return this.authService.logOut(refreshToken, userId);
   }
 
   @Post('recovery-password')
@@ -66,8 +66,8 @@ export class AuthController {
   async updatePassword(
     @Body() { password }: UpdatePasswordDto,
     @GetToken('rect') recoveryToken: string,
-    @GetCurrentUser() { email }: IUserRequestParams,
+    @GetCurrentUser() { userId }: IUserRequestParams,
   ): Promise<void> {
-    return this.authService.updatePassword(password, recoveryToken, email);
+    return this.authService.updatePassword(password, recoveryToken, userId);
   }
 }

@@ -12,9 +12,17 @@ export class GoogleOAuthController {
 
   @Get()
   @UseGuards(GoogleOAuthGuard)
-  async googleSignIn(
+  async googleSignIn(): Promise<void> {}
+
+  @Get('redirect')
+  @UseGuards(GoogleOAuthGuard)
+  async googleRedirect(
     @GetCurrentUser() googleUser: IUserRequestParams,
-  ): Promise<any> {
-    return this.googleOAuthService.googleSignIn(googleUser);
+  ): Promise<string> {
+    if (googleUser) {
+      return 'Authenticated';
+    } else {
+      return 'Not Authenticated';
+    }
   }
 }
