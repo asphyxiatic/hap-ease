@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -15,7 +16,7 @@ import { ICreateTokensResult } from '../interfaces/create-pair-tokens-result.int
 import { IValidateResult } from '../interfaces/validate-result.interface.js';
 import { UsersService } from '../../users/services/users.service.js';
 import { User } from '../../users/entities/user.entity.js';
-import { UpdateTokensResponseDto } from '../dto/update-token.dto.js';
+import { UpdateTokensResponseDto } from '../dto/update-token-response.dto.js';
 import { TokensService } from '../../tokens/services/tokens.service.js';
 import { JwtToolsService } from '../../jwt/services/jwt-tools.service.js';
 import { ITokenPayload } from '../../common/interfaces/token-payload.interface.js';
@@ -34,7 +35,7 @@ export class AuthService {
   constructor(
     private readonly tokensService: TokensService,
     private readonly jwtToolsSerivce: JwtToolsService,
-    private readonly userService: UsersService,
+    private readonly usersService: UsersService,
     private readonly emailService: EmailService,
   ) {}
 
@@ -44,12 +45,12 @@ export class AuthService {
     nickname,
     password,
   }: SignUpDto): Promise<SignUpResponseDto> {
-    const existingUser = await this.userService.findOneFor({
+    const existingUser = await this.usersService.findOneFor({
       email: email,
     });
 
     if (existingUser) {
-      throw new UnauthorizedException('🚨 user is already exist!');
+      throw new ConflictException('🚨 user is already exist!');
     }
 
     const hashedPassword = bcrypt.hashSync(password, this.saltRounds);
@@ -60,7 +61,7 @@ export class AuthService {
       password: hashedPassword,
     };
 
-    const newUser = await this.userService.save(newUserProps);
+    const newUser = await this.usersService.save(newUserProps);
 
     const tokens = await this.createPairTokens(newUser.id, newUser.email);
 
@@ -75,6 +76,11 @@ export class AuthService {
     });
 
     return {
+      user: {
+        email: newUser.email,
+        nickname: newUser.nickname,
+        avatar: newUser.avatar,
+      },
       access_token: tokens.accessToken,
       refresh_token: tokens.refreshToken,
     };
@@ -85,13 +91,13 @@ export class AuthService {
     email,
     password,
   }: SignInDto): Promise<SignInResponseDto> {
-    const user = await this.userService.findOneFor({ email: email });
+    const user = await this.usersService.findOneFor({ email: email });
 
     if (!user) {
       throw new NotFoundException('🚨 user not found!');
     }
 
-    const passwordIsValid = bcrypt.compareSync(password, user.password);
+    const passwordIsValid = bcrypt.compareSync(password, user.password!);
 
     if (!passwordIsValid) {
       throw new UnauthorizedException('🚨 incorrect password!');
@@ -110,6 +116,11 @@ export class AuthService {
     });
 
     return {
+      user: {
+        email: user.email,
+        nickname: user.nickname,
+        avatar: user.avatar,
+      },
       access_token: tokens.accessToken,
       refresh_token: tokens.refreshToken,
     };
@@ -125,18 +136,18 @@ export class AuthService {
       jwtSecret,
     );
 
-    const user = await this.userService.findOneFor({ id: userId });
+    const user = await this.usersService.findOneFor({ id: userId });
 
     if (!user) {
       throw new NotFoundException('🚨 user not found!');
     }
 
-    return { userId: user!.id };
+    return { userId: user.id, email: user.email };
   }
 
   // -------------------------------------------------------------
   public async recoveryPassword(email: string): Promise<void> {
-    const user = await this.userService.findOneFor({ email });
+    const user = await this.usersService.findOneFor({ email });
 
     if (!user) {
       throw new NotFoundException('🚨 user not found');
@@ -156,7 +167,7 @@ export class AuthService {
 
     const hashedRecoveryToken = bcrypt.hashSync(recoveryToken, this.saltRounds);
 
-    this.userService.save({
+    this.usersService.save({
       ...user,
       recoveryToken: hashedRecoveryToken,
     });
@@ -178,10 +189,10 @@ export class AuthService {
   public async updatePassword(
     password: string,
     recoveryToken: string,
-    userId: string,
+    email: string,
   ): Promise<void> {
-    const user = await this.userService.findOneFor({
-      id: userId,
+    const user = await this.usersService.findOneFor({
+      email: email,
     });
 
     if (!user) {
@@ -201,23 +212,25 @@ export class AuthService {
       throw new InternalServerErrorException('🚨 token is invalid!');
     }
 
-    this.userService.save({
+    this.usersService.save({
       id: user.id,
       recoveryToken: null,
     });
 
     const hashedPassword = bcrypt.hashSync(password, this.saltRounds);
 
-    this.userService.save({
-      id: userId,
+    this.usersService.save({
+      id: user.id,
       password: hashedPassword,
     });
   }
 
   // -------------------------------------------------------------
-  public async logOut(refreshToken: string, userId: string): Promise<void> {
+  public async logOut(refreshToken: string, email: string): Promise<void> {
+    const user = await this.usersService.findOneFor({ email: email });
+
     const refreshTokensFromDB = await this.tokensService.find({
-      userId: userId,
+      userId: user!.id,
     });
 
     const extractTokenFromDB = refreshTokensFromDB.find((token) =>
@@ -234,10 +247,12 @@ export class AuthService {
   // -------------------------------------------------------------
   public async refreshTokens(
     refreshToken: string,
-    userId: string,
+    email: string,
   ): Promise<UpdateTokensResponseDto> {
+    const user = await this.usersService.findOneFor({ email: email });
+
     const refreshTokensFromDB = await this.tokensService.find({
-      userId: userId,
+      userId: user!.id,
     });
 
     const refreshTokenIsValid = refreshTokensFromDB.find((token) =>
@@ -248,13 +263,7 @@ export class AuthService {
       throw new UnauthorizedException('🚨 refresh_token is invalid!');
     }
 
-    const user = await this.userService.findOneFor({ id: userId });
-
-    if (!user) {
-      throw new NotFoundException('🚨 user not found!');
-    }
-
-    const newTokens = await this.createPairTokens(user.id, user.email);
+    const newTokens = await this.createPairTokens(user!.id, user!.email);
 
     const hashedRefreshToken = bcrypt.hashSync(
       newTokens.refreshToken,
@@ -267,15 +276,23 @@ export class AuthService {
     });
 
     return {
+      user: {
+        email: user!.email,
+        nickname: user!.nickname,
+        avatar: user!.avatar,
+      },
       access_token: newTokens.accessToken,
       refresh_token: newTokens.refreshToken,
     };
   }
 
   // -------------------------------------------------------------
-  public extractTokenFromHeader(request: Request): string | undefined {
+  public extractTokenFromHeader(request: Request): string {
     const [type, token] = request.headers.authorization?.split(' ') ?? [];
-    return type === 'Bearer' ? token : undefined;
+    if (type !== 'Bearer') {
+      throw new UnauthorizedException('🚨 token not found!');
+    }
+    return token;
   }
 
   // -------------------------------------------------------------

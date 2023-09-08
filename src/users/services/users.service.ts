@@ -47,8 +47,8 @@ export class UsersService {
   }
 
   // -------------------------------------------------------------
-  public async emailConfirmationRequest(userId: string): Promise<void> {
-    const user = await this.findOneFor({ id: userId });
+  public async emailConfirmationRequest(email: string): Promise<void> {
+    const user = await this.findOneFor({ email: email });
 
     if (!user) {
       throw new NotFoundException('🚨 user not found!');
@@ -96,9 +96,9 @@ export class UsersService {
   // -------------------------------------------------------------
   public async confirmationEmail(
     confirmationToken: string,
-    userId: string,
+    email: string,
   ): Promise<void> {
-    const user = await this.findOneFor({ id: userId });
+    const user = await this.findOneFor({ email: email });
 
     if (!user) {
       throw new NotFoundException('🚨 user not found!');

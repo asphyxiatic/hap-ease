@@ -2,7 +2,6 @@ import {
   CanActivate,
   ExecutionContext,
   Injectable,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { AuthService } from '../services/auth.service.js';
 import { Reflector } from '@nestjs/core';
@@ -26,10 +25,6 @@ export class AuthAccessGuard implements CanActivate {
     const request = ctx.switchToHttp().getRequest();
 
     const token = this.authService.extractTokenFromHeader(request);
-
-    if (!token) {
-      throw new UnauthorizedException('🚨 token not found!');
-    }
 
     const user = await this.authService.validate(
       token,

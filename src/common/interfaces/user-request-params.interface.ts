@@ -1,3 +1,8 @@
 export interface IUserRequestParams {
-  userId: string;
+  userId?: string;
+  email: string;
+  nickname?: string;
+  avatarUrl?: string;
+  accessToken?: string;
+  refreshToken?: string;
 }

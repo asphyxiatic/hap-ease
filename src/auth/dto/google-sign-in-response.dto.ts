@@ -1,4 +1,4 @@
-export class SignInResponseDto {
+export class GoogleSignInResponseDto {
   user!: {
     email: string;
     nickname: string;

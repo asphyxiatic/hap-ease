@@ -11,15 +11,15 @@ import { SignUpDto } from '../dto/sign-up.dto.js';
 import { SignInDto } from '../dto/sign-in.dto.js';
 import { SignUpResponseDto } from '../dto/sign-up-response.dto.js';
 import { SignInResponseDto } from '../dto/sign-in-response.dto.js';
-import { UpdateTokensResponseDto } from '../dto/update-token.dto.js';
+import { UpdateTokensResponseDto } from '../dto/update-token-response.dto.js';
 import { GetToken } from '../decorators/get-auth-token.decorator.js';
 import { RecoveryPasswordDto } from '../dto/recovery-password.dto.js';
 import { UpdatePasswordDto } from '../dto/update-password.dto.js';
 import { SkipAuth } from '../decorators/skip-auth.decorator.js';
 import { RefreshTokenGuard } from '../guards/refresh-token.guard.js';
-import { GetCurrentUser } from '../../common/decorators/get-current-user.decorators.js';
-import { IUserRequestParams } from '../../common/interfaces/user-request-params.interface.js';
+import { GetCurrentUser } from '../../common/decorators/get-current-user.js';
 import { RecoveryTokenGuard } from '../guards/recovery-token.guard.js';
+import { IUserRequestParams } from '../../common/interfaces/user-request-params.interface.js';
 
 @SkipAuth()
 @Controller('auth')
@@ -40,18 +40,18 @@ export class AuthController {
   @UseGuards(RefreshTokenGuard)
   async refreshTokens(
     @GetToken('rt') refreshToken: string,
-    @GetCurrentUser() { userId }: IUserRequestParams,
+    @GetCurrentUser() { email }: IUserRequestParams,
   ): Promise<UpdateTokensResponseDto> {
-    return this.authService.refreshTokens(refreshToken, userId);
+    return this.authService.refreshTokens(refreshToken, email);
   }
 
   @Delete('log-out')
   @UseGuards(RefreshTokenGuard)
   async logOut(
     @GetToken('rt') refreshToken: string,
-    @GetCurrentUser() { userId }: IUserRequestParams,
+    @GetCurrentUser() { email }: IUserRequestParams,
   ): Promise<void> {
-    return this.authService.logOut(refreshToken, userId);
+    return this.authService.logOut(refreshToken, email);
   }
 
   @Post('recovery-password')
@@ -66,8 +66,8 @@ export class AuthController {
   async updatePassword(
     @Body() { password }: UpdatePasswordDto,
     @GetToken('rect') recoveryToken: string,
-    @GetCurrentUser() { userId }: IUserRequestParams,
+    @GetCurrentUser() { email }: IUserRequestParams,
   ): Promise<void> {
-    return this.authService.updatePassword(password, recoveryToken, userId);
+    return this.authService.updatePassword(password, recoveryToken, email);
   }
 }
