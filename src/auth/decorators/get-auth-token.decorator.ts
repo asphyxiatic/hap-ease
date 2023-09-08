@@ -1,13 +1,24 @@
 import { ExecutionContext, createParamDecorator } from '@nestjs/common';
-import { Request } from 'express';
+import { IGetToken } from '../interfaces/get-token.interface.js';
 
-export const GetAuthToken = createParamDecorator(
-  (data: unknown, ctx: ExecutionContext) => {
-    const request: Request = ctx.switchToHttp().getRequest();
-    const authorization = request.headers.authorization;
+export const GetToken = createParamDecorator(
+  (data: keyof IGetToken, ctx: ExecutionContext) => {
+    const request = ctx.switchToHttp().getRequest();
 
-    const [type, refreshToken] = authorization!.split(' ');
+    const headers = request.headers;
 
-    return type === 'Bearer' ? refreshToken : undefined;
+    if (data === 'at' || 'rt' || 'rect' || typeof data === 'undefined') {
+      const [type, token] = headers.authorization.split(' ');
+
+      return type === 'Bearer' ? token : undefined;
+    } else if (data === 'gt') {
+      const googleToken = headers.authorization;
+
+      return googleToken;
+    } else if (data === 'ct') {
+      const confirmationToken = headers['confirmation-token'];
+
+      return confirmationToken;
+    }
   },
 );

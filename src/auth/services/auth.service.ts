@@ -22,6 +22,7 @@ import { ITokenPayload } from '../../common/interfaces/token-payload.interface.j
 import { EmailService } from '../../mailer/services/email.service.js';
 import { TemplatesEnum } from '../../mailer/enums/templates.enum.js';
 import { TemplatesDiscriptionEnum } from '../../mailer/enums/templates-discription.enum.js';
+import { Request } from 'express';
 
 @Injectable()
 export class AuthService {
@@ -115,10 +116,13 @@ export class AuthService {
   }
 
   // -------------------------------------------------------------
-  public async validate(accessToken: string): Promise<IValidateResult> {
+  public async validate(
+    accessToken: string,
+    jwtSecret: string,
+  ): Promise<IValidateResult> {
     const { userId } = await this.jwtToolsSerivce.decodeToken(
       accessToken,
-      this.JWT_ACCESS_SECRET_KEY,
+      jwtSecret,
     );
 
     const user = await this.userService.findOneFor({ id: userId });
@@ -174,12 +178,8 @@ export class AuthService {
   public async updatePassword(
     password: string,
     recoveryToken: string,
+    userId: string,
   ): Promise<void> {
-    const { userId } = await this.jwtToolsSerivce.decodeToken(
-      recoveryToken,
-      this.JWT_RECOVERY_SECRET_KEY,
-    );
-
     const user = await this.userService.findOneFor({
       id: userId,
     });
@@ -215,12 +215,7 @@ export class AuthService {
   }
 
   // -------------------------------------------------------------
-  public async logOut(refreshToken: string): Promise<void> {
-    const { userId } = await this.jwtToolsSerivce.decodeToken(
-      refreshToken,
-      this.JWT_REFRESH_SECRET_KEY,
-    );
-
+  public async logOut(refreshToken: string, userId: string): Promise<void> {
     const refreshTokensFromDB = await this.tokensService.find({
       userId: userId,
     });
@@ -237,14 +232,10 @@ export class AuthService {
   }
 
   // -------------------------------------------------------------
-  public async updateTokens(
+  public async refreshTokens(
     refreshToken: string,
+    userId: string,
   ): Promise<UpdateTokensResponseDto> {
-    const { userId } = await this.jwtToolsSerivce.decodeToken(
-      refreshToken,
-      this.JWT_REFRESH_SECRET_KEY,
-    );
-
     const refreshTokensFromDB = await this.tokensService.find({
       userId: userId,
     });
@@ -279,6 +270,12 @@ export class AuthService {
       access_token: newTokens.accessToken,
       refresh_token: newTokens.refreshToken,
     };
+  }
+
+  // -------------------------------------------------------------
+  public extractTokenFromHeader(request: Request): string | undefined {
+    const [type, token] = request.headers.authorization?.split(' ') ?? [];
+    return type === 'Bearer' ? token : undefined;
   }
 
   // -------------------------------------------------------------

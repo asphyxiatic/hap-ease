@@ -12,19 +12,19 @@ import { SignInDto } from '../dto/sign-in.dto.js';
 import { SignUpResponseDto } from '../dto/sign-up-response.dto.js';
 import { SignInResponseDto } from '../dto/sign-in-response.dto.js';
 import { UpdateTokensResponseDto } from '../dto/update-token.dto.js';
-import { GetAuthToken } from '../decorators/get-auth-token.decorator.js';
+import { GetToken } from '../decorators/get-auth-token.decorator.js';
 import { RecoveryPasswordDto } from '../dto/recovery-password.dto.js';
 import { UpdatePasswordDto } from '../dto/update-password.dto.js';
-import { NotEmptyAuthorizationGuard } from '../guards/not-empty-authorization.guard.js';
-import { User } from '../../users/entities/user.entity.js';
-import { GoogleAuthService } from '../services/google-auth.service.js';
+import { SkipAuth } from '../decorators/skip-auth.decorator.js';
+import { RefreshTokenGuard } from '../guards/refresh-token.guard.js';
+import { GetCurrentUser } from '../../common/decorators/get-current-user.decorators.js';
+import { IUserRequestParams } from '../../common/interfaces/user-request-params.interface.js';
+import { RecoveryTokenGuard } from '../guards/recovery-token.guard.js';
 
+@SkipAuth()
 @Controller('auth')
 export class AuthController {
-  constructor(
-    private readonly authService: AuthService,
-    private readonly googleAuthService: GoogleAuthService,
-  ) {}
+  constructor(private readonly authService: AuthService) {}
 
   @Post('sign-up')
   async signUp(@Body() credentials: SignUpDto): Promise<SignUpResponseDto> {
@@ -36,18 +36,22 @@ export class AuthController {
     return this.authService.signIn(credentials);
   }
 
-  @Post('update-tokens')
-  @UseGuards(NotEmptyAuthorizationGuard)
-  async updateTokens(
-    @GetAuthToken() refreshToken: string,
+  @Post('refresh-tokens')
+  @UseGuards(RefreshTokenGuard)
+  async refreshTokens(
+    @GetToken('rt') refreshToken: string,
+    @GetCurrentUser() { userId }: IUserRequestParams,
   ): Promise<UpdateTokensResponseDto> {
-    return this.authService.updateTokens(refreshToken);
+    return this.authService.refreshTokens(refreshToken, userId);
   }
 
   @Delete('log-out')
-  @UseGuards(NotEmptyAuthorizationGuard)
-  async logOut(@GetAuthToken() refreshToken: string): Promise<void> {
-    return this.authService.logOut(refreshToken);
+  @UseGuards(RefreshTokenGuard)
+  async logOut(
+    @GetToken('rt') refreshToken: string,
+    @GetCurrentUser() { userId }: IUserRequestParams,
+  ): Promise<void> {
+    return this.authService.logOut(refreshToken, userId);
   }
 
   @Post('recovery-password')
@@ -58,19 +62,12 @@ export class AuthController {
   }
 
   @Patch('update-password')
-  @UseGuards(NotEmptyAuthorizationGuard)
+  @UseGuards(RecoveryTokenGuard)
   async updatePassword(
     @Body() { password }: UpdatePasswordDto,
-    @GetAuthToken() recoveryToken: string,
+    @GetToken('rect') recoveryToken: string,
+    @GetCurrentUser() { userId }: IUserRequestParams,
   ): Promise<void> {
-    return this.authService.updatePassword(password, recoveryToken);
-  }
-
-  @Post('google-authentication')
-  @UseGuards(NotEmptyAuthorizationGuard)
-  async googleAuthentication(
-    @GetAuthToken() googleAccessToken: string,
-  ): Promise<User> {
-    return this.googleAuthService.authenticate(googleAccessToken);
+    return this.authService.updatePassword(password, recoveryToken, userId);
   }
 }

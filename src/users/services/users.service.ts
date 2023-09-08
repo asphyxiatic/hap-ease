@@ -94,12 +94,10 @@ export class UsersService {
   }
 
   // -------------------------------------------------------------
-  public async confirmationEmail(confirmationToken: string): Promise<void> {
-    const { userId } = await this.jwtToolsSerivce.decodeToken(
-      confirmationToken,
-      this.JWT_CONFIRMATION_SECRET_KEY,
-    );
-
+  public async confirmationEmail(
+    confirmationToken: string,
+    userId: string,
+  ): Promise<void> {
     const user = await this.findOneFor({ id: userId });
 
     if (!user) {

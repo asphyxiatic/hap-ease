@@ -6,23 +6,20 @@ import { TokensModule } from '../tokens/tokens.module.js';
 import { EmailModule } from '../mailer/email.module.js';
 import { JwtToolsModule } from '../jwt/jwt-tools.module.js';
 import { AuthAccessGuard } from './guards/auth-access.guard.js';
-import { NotEmptyAuthorizationGuard } from './guards/not-empty-authorization.guard.js';
-import { GoogleAuthService } from './services/google-auth.service.js';
+import { APP_GUARD } from '@nestjs/core';
+import { RefreshTokenGuard } from './guards/refresh-token.guard.js';
 
 @Module({
-  imports: [
-    TokensModule,
-    EmailModule,
-    JwtToolsModule,
-    forwardRef(() => UsersModule),
-  ],
+  imports: [TokensModule, EmailModule, JwtToolsModule, UsersModule],
   controllers: [AuthController],
   providers: [
+    {
+      provide: APP_GUARD,
+      useClass: AuthAccessGuard,
+    },
     AuthService,
-    GoogleAuthService,
-    AuthAccessGuard,
-    NotEmptyAuthorizationGuard,
+    RefreshTokenGuard,
   ],
-  exports: [AuthAccessGuard, AuthService],
+  exports: [AuthService],
 })
 export class AuthModule {}
