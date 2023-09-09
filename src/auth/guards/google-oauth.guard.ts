@@ -25,11 +25,7 @@ export class GoogleOAuthGuard extends AuthGuard('google') {
       throw new UnauthorizedException('🚨 google authentication error!');
     }
 
-    const user = await this.googleOAuthService.googleSignIn(googleUser);
-
-    request['user'] = user;
-
-    console.log(request['user']);
+    request['user'] = googleUser;
 
     return true;
   }

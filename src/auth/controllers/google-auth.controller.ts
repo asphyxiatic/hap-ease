@@ -3,7 +3,8 @@ import { GoogleOAuthService } from '../services/google-auth.service.js';
 import { SkipAuth } from '../decorators/skip-auth.decorator.js';
 import { GetCurrentUser } from '../../common/decorators/get-current-user.js';
 import { GoogleOAuthGuard } from '../guards/google-oauth.guard.js';
-import { IUserRequestParams } from '../../common/interfaces/user-request-params.interface.js';
+import { GoogleSignInResponseDto } from '../dto/google-sign-in-response.dto.js';
+import { IGoogleUser } from '../interfaces/google-user.interface.js';
 
 @SkipAuth()
 @Controller('google-auth')
@@ -17,12 +18,10 @@ export class GoogleOAuthController {
   @Get('redirect')
   @UseGuards(GoogleOAuthGuard)
   async googleRedirect(
-    @GetCurrentUser() googleUser: IUserRequestParams,
-  ): Promise<string> {
-    if (googleUser) {
-      return 'Authenticated';
-    } else {
-      return 'Not Authenticated';
-    }
+    @GetCurrentUser() googleUser: IGoogleUser,
+  ): Promise<GoogleSignInResponseDto> {
+    return this.googleOAuthService.googleSignIn(googleUser);
   }
+
+  
 }

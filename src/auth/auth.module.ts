@@ -13,7 +13,6 @@ import { GoogleOAuthService } from './services/google-auth.service.js';
 import { GoogleOAuthController } from './controllers/google-auth.controller.js';
 import { GoogleStrategy } from './strategies/google.strategy.js';
 import { GoogleOAuthGuard } from './guards/google-oauth.guard.js';
-import { SessionSerializer } from './sessions/sessions.serializers.js';
 
 @Module({
   imports: [
@@ -28,7 +27,6 @@ import { SessionSerializer } from './sessions/sessions.serializers.js';
       provide: APP_GUARD,
       useClass: AuthAccessGuard,
     },
-    SessionSerializer,
     GoogleOAuthGuard,
     AuthService,
     GoogleStrategy,

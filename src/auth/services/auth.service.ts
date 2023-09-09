@@ -1,7 +1,7 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
-  InternalServerErrorException,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -12,8 +12,6 @@ import config from '../../config/config.js';
 import { randomUUID } from 'crypto';
 import { SignUpResponseDto } from '../dto/sign-up-response.dto.js';
 import { SignInResponseDto } from '../dto/sign-in-response.dto.js';
-import { ICreateTokensResult } from '../interfaces/create-pair-tokens-result.interface.js';
-import { IValidateResult } from '../interfaces/validate-result.interface.js';
 import { UsersService } from '../../users/services/users.service.js';
 import { User } from '../../users/entities/user.entity.js';
 import { UpdateTokensResponseDto } from '../dto/update-token-response.dto.js';
@@ -24,6 +22,8 @@ import { EmailService } from '../../mailer/services/email.service.js';
 import { TemplatesEnum } from '../../mailer/enums/templates.enum.js';
 import { TemplatesDiscriptionEnum } from '../../mailer/enums/templates-discription.enum.js';
 import { Request } from 'express';
+import { ITokens } from '../interfaces/tokens.interface.js';
+import { IUserRequest } from '../../common/interfaces/user-request.interface.js';
 
 @Injectable()
 export class AuthService {
@@ -97,10 +97,18 @@ export class AuthService {
       throw new NotFoundException('🚨 user not found!');
     }
 
-    const passwordIsValid = bcrypt.compareSync(password, user.password!);
+    if (!user.password) {
+      throw new BadRequestException(
+        '🚨 invalid login information or password!',
+      );
+    }
+
+    const passwordIsValid = bcrypt.compareSync(password, user.password);
 
     if (!passwordIsValid) {
-      throw new UnauthorizedException('🚨 incorrect password!');
+      throw new BadRequestException(
+        '🚨 invalid login information or password!',
+      );
     }
 
     const tokens = await this.createPairTokens(user.id, user.email);
@@ -130,7 +138,7 @@ export class AuthService {
   public async validate(
     accessToken: string,
     jwtSecret: string,
-  ): Promise<IValidateResult> {
+  ): Promise<IUserRequest> {
     const { userId } = await this.jwtToolsSerivce.decodeToken(
       accessToken,
       jwtSecret,
@@ -142,7 +150,12 @@ export class AuthService {
       throw new NotFoundException('🚨 user not found!');
     }
 
-    return { userId: user.id, email: user.email };
+    return {
+      userId: user.id,
+      email: user.email,
+      avatar: user.avatar,
+      nickname: user.nickname,
+    };
   }
 
   // -------------------------------------------------------------
@@ -200,7 +213,7 @@ export class AuthService {
     }
 
     if (!user.recoveryToken) {
-      throw new InternalServerErrorException('🚨 token is invalid!');
+      throw new UnauthorizedException('🚨 token is invalid!');
     }
 
     const recoveryTokenIsValid = bcrypt.compareSync(
@@ -209,7 +222,7 @@ export class AuthService {
     );
 
     if (!recoveryTokenIsValid) {
-      throw new InternalServerErrorException('🚨 token is invalid!');
+      throw new UnauthorizedException('🚨 token is invalid!');
     }
 
     this.usersService.save({
@@ -236,7 +249,7 @@ export class AuthService {
     );
 
     if (!extractTokenFromDB) {
-      throw new InternalServerErrorException('🚨 failed to log-out!');
+      throw new UnauthorizedException('🚨 token is invalid!');
     }
 
     this.tokensService.delete(extractTokenFromDB.value);
@@ -256,7 +269,7 @@ export class AuthService {
     );
 
     if (!refreshTokenIsValid) {
-      throw new UnauthorizedException('🚨 refresh_token is invalid!');
+      throw new UnauthorizedException('🚨 token is invalid!');
     }
 
     const user = await this.usersService.findOneFor({ id: userId });
@@ -298,10 +311,10 @@ export class AuthService {
   }
 
   // -------------------------------------------------------------
-  private async createPairTokens(
+  public async createPairTokens(
     userId: string,
     email: string,
-  ): Promise<ICreateTokensResult> {
+  ): Promise<ITokens> {
     const payloadForAccessToken: ITokenPayload = {
       sub: userId,
       email: email,

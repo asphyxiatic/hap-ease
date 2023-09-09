@@ -34,9 +34,6 @@ export class User extends BaseEntity {
   @Column({ type: 'varchar', default: null })
   password!: string | null;
 
-  @Column({ name: 'is_registered_with_google', type: 'bool', default: false })
-  isRegisteredWithGoogle!: boolean;
-
   @Column({ type: 'bool', default: false })
   active!: boolean;
 

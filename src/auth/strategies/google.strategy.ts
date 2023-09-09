@@ -5,7 +5,6 @@ import {
 } from 'passport-google-oauth20';
 import config from '../../config/config.js';
 import { Injectable } from '@nestjs/common';
-import { IUserRequestParams } from '../../common/interfaces/user-request-params.interface.js';
 
 @Injectable()
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
@@ -13,7 +12,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     super({
       clientID: config.GOOGLE_AUTH_CLIENT_ID,
       clientSecret: config.GOOGLE_AUTH_CLIENT_SECRET,
-      callbackURL: 'http://localhost:3001/google-auth',
+      callbackURL: 'http://localhost:3001/google-auth/redirect',
       scope: ['email', 'profile'],
     } as StrategyOptions);
   }

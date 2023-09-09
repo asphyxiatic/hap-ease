@@ -1,7 +1,4 @@
-export interface IGoogleUser {
-  email: string;
-  nickname: string;
-  avatarUrl: string;
-  accessToken: string;
-  refreshToken: string;
-}
+import { ITokens } from './tokens.interface.js';
+import { IUserData } from '../../common/interfaces/user-data.interface.js';
+
+export interface IGoogleUser extends IUserData, ITokens {}

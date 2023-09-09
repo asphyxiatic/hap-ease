@@ -1,10 +1,6 @@
-export class SignInResponseDto {
-  user!: {
-    email: string;
-    nickname: string;
-    avatar: string;
-  };
+import { TokensResponse } from '../../common/dto/tokens-response.dto.js';
+import { IUserData } from '../../common/interfaces/user-data.interface.js';
 
-  access_token!: string;
-  refresh_token!: string;
+export class SignInResponseDto extends TokensResponse {
+  user!: IUserData;
 }

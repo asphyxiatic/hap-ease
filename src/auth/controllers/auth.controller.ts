@@ -19,7 +19,7 @@ import { SkipAuth } from '../decorators/skip-auth.decorator.js';
 import { RefreshTokenGuard } from '../guards/refresh-token.guard.js';
 import { GetCurrentUser } from '../../common/decorators/get-current-user.js';
 import { RecoveryTokenGuard } from '../guards/recovery-token.guard.js';
-import { IUserRequestParams } from '../../common/interfaces/user-request-params.interface.js';
+import { IUserRequest } from '../../common/interfaces/user-request.interface.js';
 
 @SkipAuth()
 @Controller('auth')
@@ -40,7 +40,7 @@ export class AuthController {
   @UseGuards(RefreshTokenGuard)
   async refreshTokens(
     @GetToken('rt') refreshToken: string,
-    @GetCurrentUser() { userId }: IUserRequestParams,
+    @GetCurrentUser() { userId }: IUserRequest,
   ): Promise<UpdateTokensResponseDto> {
     return this.authService.refreshTokens(refreshToken, userId);
   }
@@ -49,7 +49,7 @@ export class AuthController {
   @UseGuards(RefreshTokenGuard)
   async logOut(
     @GetToken('rt') refreshToken: string,
-    @GetCurrentUser() { userId }: IUserRequestParams,
+    @GetCurrentUser() { userId }: IUserRequest,
   ): Promise<void> {
     return this.authService.logOut(refreshToken, userId);
   }
@@ -66,7 +66,7 @@ export class AuthController {
   async updatePassword(
     @Body() { password }: UpdatePasswordDto,
     @GetToken('rect') recoveryToken: string,
-    @GetCurrentUser() { userId }: IUserRequestParams,
+    @GetCurrentUser() { userId }: IUserRequest,
   ): Promise<void> {
     return this.authService.updatePassword(password, recoveryToken, userId);
   }

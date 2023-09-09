@@ -1,16 +1,25 @@
 import { ConflictException, Injectable } from '@nestjs/common';
 import { UsersService } from '../../users/services/users.service.js';
-import { IUserRequestParams } from '../../common/interfaces/user-request-params.interface.js';
 import { IGoogleUser } from '../interfaces/google-user.interface.js';
+import { GoogleSignInResponseDto } from '../dto/google-sign-in-response.dto.js';
+import { AuthService } from './auth.service.js';
+import * as bcrypt from 'bcrypt';
+import { TokensService } from '../../tokens/services/tokens.service.js';
 
 @Injectable()
 export class GoogleOAuthService {
-  constructor(private readonly usersService: UsersService) {}
+  private readonly saltRounds = 5;
+
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly authService: AuthService,
+    private readonly tokensService: TokensService,
+  ) {}
 
   // -------------------------------------------------------------
   public async googleSignIn(
     googleUser: IGoogleUser,
-  ): Promise<IUserRequestParams> {
+  ): Promise<GoogleSignInResponseDto> {
     const user = await this.usersService.findOneFor({
       email: googleUser.email,
     });
@@ -19,28 +28,57 @@ export class GoogleOAuthService {
       const newUser = await this.usersService.save({
         email: googleUser.email,
         nickname: googleUser.nickname,
-        isRegisteredWithGoogle: true,
-        avatar: googleUser.avatarUrl,
+        avatar: googleUser.avatar,
         active: true,
       });
 
-      return {
+      const tokens = await this.authService.createPairTokens(
+        newUser.id,
+        newUser.email,
+      );
+
+      const hashedRefreshToken = bcrypt.hashSync(
+        tokens.refreshToken,
+        this.saltRounds,
+      );
+
+      this.tokensService.save({
         userId: newUser.id,
-        email: newUser.email,
-        nickname: newUser.nickname,
-        avatarUrl: newUser.avatar,
-        accessToken: googleUser.accessToken,
-        refreshToken: googleUser.refreshToken,
+        value: hashedRefreshToken,
+      });
+
+      return {
+        user: {
+          email: newUser.email,
+          nickname: newUser.nickname,
+          avatar: newUser.avatar,
+        },
+        access_token: tokens.accessToken,
+        refresh_token: tokens.refreshToken,
       };
     } else {
-      if (!user.isRegisteredWithGoogle) {
+      if (user.password) {
         throw new ConflictException('🚨 user is already exist!');
       }
     }
 
+    const tokens = await this.authService.createPairTokens(user.id, user.email);
+
+    const hashedRefreshToken = bcrypt.hashSync(
+      tokens.refreshToken,
+      this.saltRounds,
+    );
+
+    this.tokensService.save({ userId: user.id, value: hashedRefreshToken });
+
     return {
-      ...googleUser,
-      userId: user.id,
+      user: {
+        email: user.email,
+        nickname: user.nickname,
+        avatar: user.avatar,
+      },
+      access_token: tokens.accessToken,
+      refresh_token: tokens.refreshToken,
     };
   }
 }
