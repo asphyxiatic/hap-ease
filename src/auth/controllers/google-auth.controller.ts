@@ -5,6 +5,7 @@ import { GetCurrentUser } from '../../common/decorators/get-current-user.js';
 import { GoogleOAuthGuard } from '../guards/google-oauth.guard.js';
 import { GoogleSignInResponseDto } from '../dto/google-sign-in-response.dto.js';
 import { IGoogleUser } from '../interfaces/google-user.interface.js';
+import { GetFingerprints } from '../decorators/get-fingerprints.decorator.js';
 
 @SkipAuth()
 @Controller('google-auth')
@@ -19,9 +20,8 @@ export class GoogleOAuthController {
   @UseGuards(GoogleOAuthGuard)
   async googleRedirect(
     @GetCurrentUser() googleUser: IGoogleUser,
+    @GetFingerprints() fingerprint: string,
   ): Promise<GoogleSignInResponseDto> {
-    return this.googleOAuthService.googleSignIn(googleUser);
+    return this.googleOAuthService.googleSignIn(googleUser, fingerprint);
   }
-
-  
 }

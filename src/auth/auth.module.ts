@@ -1,4 +1,9 @@
-import { Module, forwardRef } from '@nestjs/common';
+import {
+  MiddlewareConsumer,
+  Module,
+  NestModule,
+  forwardRef,
+} from '@nestjs/common';
 import { AuthService } from './services/auth.service.js';
 import { AuthController } from './controllers/auth.controller.js';
 import { UsersModule } from '../users/users.module.js';
@@ -13,6 +18,7 @@ import { GoogleOAuthService } from './services/google-auth.service.js';
 import { GoogleOAuthController } from './controllers/google-auth.controller.js';
 import { GoogleStrategy } from './strategies/google.strategy.js';
 import { GoogleOAuthGuard } from './guards/google-oauth.guard.js';
+import { FingerprintsMiddleware } from './middlewares/fingerprints.middleware.js';
 
 @Module({
   imports: [
@@ -36,4 +42,8 @@ import { GoogleOAuthGuard } from './guards/google-oauth.guard.js';
   ],
   exports: [AuthService],
 })
-export class AuthModule {}
+export class AuthModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(FingerprintsMiddleware).forRoutes('*');
+  }
+}

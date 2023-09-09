@@ -44,7 +44,8 @@ export class AuthService {
     email,
     nickname,
     password,
-  }: SignUpDto): Promise<SignUpResponseDto> {
+    fingerprint,
+  }: SignUpDto & { fingerprint: string }): Promise<SignUpResponseDto> {
     const existingUser = await this.usersService.findOneFor({
       email: email,
     });
@@ -73,6 +74,7 @@ export class AuthService {
     this.tokensService.save({
       userId: newUser.id,
       value: hashedRefreshToken,
+      fingerprint: fingerprint,
     });
 
     return {
@@ -90,7 +92,8 @@ export class AuthService {
   public async signIn({
     email,
     password,
-  }: SignInDto): Promise<SignInResponseDto> {
+    fingerprint,
+  }: SignInDto & { fingerprint: string }): Promise<SignInResponseDto> {
     const user = await this.usersService.findOneFor({ email: email });
 
     if (!user) {
@@ -121,6 +124,7 @@ export class AuthService {
     this.tokensService.save({
       userId: user.id,
       value: hashedRefreshToken,
+      fingerprint: fingerprint,
     });
 
     return {
@@ -259,13 +263,16 @@ export class AuthService {
   public async refreshTokens(
     refreshToken: string,
     userId: string,
+    fingerprint: string,
   ): Promise<UpdateTokensResponseDto> {
     const refreshTokensFromDB = await this.tokensService.find({
       userId: userId,
     });
 
-    const refreshTokenIsValid = refreshTokensFromDB.find((token) =>
-      bcrypt.compareSync(refreshToken, token.value),
+    const refreshTokenIsValid = refreshTokensFromDB.find(
+      (token) =>
+        token.fingerprint === fingerprint &&
+        bcrypt.compareSync(refreshToken, token.value),
     );
 
     if (!refreshTokenIsValid) {
@@ -288,6 +295,7 @@ export class AuthService {
     this.tokensService.save({
       ...refreshTokenIsValid,
       value: hashedRefreshToken,
+      fingerprint,
     });
 
     return {

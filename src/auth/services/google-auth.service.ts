@@ -19,6 +19,7 @@ export class GoogleOAuthService {
   // -------------------------------------------------------------
   public async googleSignIn(
     googleUser: IGoogleUser,
+    fingerprint: string,
   ): Promise<GoogleSignInResponseDto> {
     const user = await this.usersService.findOneFor({
       email: googleUser.email,
@@ -45,6 +46,7 @@ export class GoogleOAuthService {
       this.tokensService.save({
         userId: newUser.id,
         value: hashedRefreshToken,
+        fingerprint,
       });
 
       return {
@@ -69,7 +71,11 @@ export class GoogleOAuthService {
       this.saltRounds,
     );
 
-    this.tokensService.save({ userId: user.id, value: hashedRefreshToken });
+    this.tokensService.save({
+      userId: user.id,
+      value: hashedRefreshToken,
+      fingerprint,
+    });
 
     return {
       user: {

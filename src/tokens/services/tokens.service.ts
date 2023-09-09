@@ -9,12 +9,31 @@ export class TokensService {
     private readonly tokenRepository: Repository<Token>,
   ) {}
 
-  public async save(tokenOptions: Partial<Token>): Promise<Token> {
-    return this.tokenRepository.save(tokenOptions);
+  public async save(
+    tokenOptions: Partial<Token> & { fingerprint: string },
+  ): Promise<Token> {
+    const tokenForfingerprint = await this.findOne({
+      fingerprint: tokenOptions.fingerprint,
+    });
+
+    if (!tokenForfingerprint) {
+      return this.tokenRepository.save(tokenOptions);
+    } else {
+      return this.tokenRepository.save({
+        ...tokenOptions,
+        id: tokenForfingerprint.id,
+      });
+    }
   }
 
   public async find(tokenOptions: FindOptionsWhere<Token>): Promise<Token[]> {
     return this.tokenRepository.find({ where: tokenOptions });
+  }
+
+  public async findOne(
+    tokenOptions: FindOptionsWhere<Token>,
+  ): Promise<Token | null> {
+    return this.tokenRepository.findOne({ where: tokenOptions });
   }
 
   public async delete(value: string): Promise<void> {

@@ -4,6 +4,7 @@ import {
   Delete,
   Patch,
   Post,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { AuthService } from '../services/auth.service.js';
@@ -20,6 +21,7 @@ import { RefreshTokenGuard } from '../guards/refresh-token.guard.js';
 import { GetCurrentUser } from '../../common/decorators/get-current-user.js';
 import { RecoveryTokenGuard } from '../guards/recovery-token.guard.js';
 import { IUserRequest } from '../../common/interfaces/user-request.interface.js';
+import { GetFingerprints } from '../decorators/get-fingerprints.decorator.js';
 
 @SkipAuth()
 @Controller('auth')
@@ -27,13 +29,19 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('sign-up')
-  async signUp(@Body() credentials: SignUpDto): Promise<SignUpResponseDto> {
-    return this.authService.signUp(credentials);
+  async signUp(
+    @Body() credentials: SignUpDto,
+    @GetFingerprints() fingerprint: string,
+  ): Promise<SignUpResponseDto> {
+    return this.authService.signUp({ ...credentials, fingerprint });
   }
 
   @Post('sign-in')
-  async signIn(@Body() credentials: SignInDto): Promise<SignInResponseDto> {
-    return this.authService.signIn(credentials);
+  async signIn(
+    @Body() credentials: SignInDto,
+    @GetFingerprints() fingerprint: string,
+  ): Promise<SignInResponseDto> {
+    return this.authService.signIn({ ...credentials, fingerprint });
   }
 
   @Post('refresh-tokens')
@@ -41,8 +49,9 @@ export class AuthController {
   async refreshTokens(
     @GetToken('rt') refreshToken: string,
     @GetCurrentUser() { userId }: IUserRequest,
+    @GetFingerprints() fingerprint: string,
   ): Promise<UpdateTokensResponseDto> {
-    return this.authService.refreshTokens(refreshToken, userId);
+    return this.authService.refreshTokens(refreshToken, userId, fingerprint);
   }
 
   @Delete('log-out')

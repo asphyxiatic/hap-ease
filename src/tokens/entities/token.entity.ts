@@ -5,6 +5,7 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
   Relation,
+  Unique,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity.js';
 
@@ -20,6 +21,9 @@ export class Token {
 
   @Column({ name: 'user_id', type: 'uuid' })
   userId!: User['id'];
+
+  @Column({ name: 'fingerprint', unique: true, type: 'varchar', default: null })
+  fingerprint!: string | null;
 
   @ManyToOne(() => User, (user) => user.tokens, {
     onDelete: 'CASCADE',
