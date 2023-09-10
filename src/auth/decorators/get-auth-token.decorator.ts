@@ -7,9 +7,13 @@ export const GetToken = createParamDecorator(
 
     const headers = request.headers;
 
-    if (data === 'at' || 'rt' || 'rect' || typeof data === 'undefined') {
+    if (
+      data === 'at' ||
+      data === 'rt' ||
+      data === 'rect' ||
+      typeof data === 'undefined'
+    ) {
       const [type, token] = headers.authorization.split(' ');
-
       return type === 'Bearer' ? token : undefined;
     } else if (data === 'gt') {
       const googleToken = headers.authorization;

@@ -19,12 +19,14 @@ import { GoogleOAuthController } from './controllers/google-auth.controller.js';
 import { GoogleStrategy } from './strategies/google.strategy.js';
 import { GoogleOAuthGuard } from './guards/google-oauth.guard.js';
 import { FingerprintsMiddleware } from './middlewares/fingerprints.middleware.js';
+import { EncryptionModule } from '../encryption/encryption.module.js';
 
 @Module({
   imports: [
     TokensModule,
     EmailModule,
     JwtToolsModule,
+    EncryptionModule,
     forwardRef(() => UsersModule),
   ],
   controllers: [AuthController, GoogleOAuthController],

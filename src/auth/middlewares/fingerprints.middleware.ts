@@ -1,10 +1,12 @@
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { NextFunction, Response } from 'express';
-import * as crypto from 'crypto';
+import { EncryptionService } from '../../encryption/services/encryption.service.js';
 
 @Injectable()
 export class FingerprintsMiddleware implements NestMiddleware {
-  use(req: any, res: Response, next: NextFunction) {
+  constructor(private readonly encryptionService: EncryptionService) {}
+
+  async use(req: any, res: Response, next: NextFunction) {
     const {
       'sec-ch-ua': secChUa,
       'sec-ch-ua-platform': secChUaPlatform,
@@ -21,10 +23,7 @@ export class FingerprintsMiddleware implements NestMiddleware {
       upgradeInsecureReq,
     ].join('|');
 
-    const fingerprint = crypto
-      .createHash('md5')
-      .update(fingerprintData)
-      .digest('hex');
+    const fingerprint = await this.encryptionService.encrypt(fingerprintData);
 
     req['fingerprint'] = fingerprint;
 

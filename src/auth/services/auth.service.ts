@@ -9,7 +9,6 @@ import * as bcrypt from 'bcrypt';
 import { SignUpDto } from '../dto/sign-up.dto.js';
 import { SignInDto } from '../dto/sign-in.dto.js';
 import config from '../../config/config.js';
-import { randomUUID } from 'crypto';
 import { SignUpResponseDto } from '../dto/sign-up-response.dto.js';
 import { SignInResponseDto } from '../dto/sign-in-response.dto.js';
 import { UsersService } from '../../users/services/users.service.js';
@@ -24,6 +23,7 @@ import { TemplatesDiscriptionEnum } from '../../mailer/enums/templates-discripti
 import { Request } from 'express';
 import { ITokens } from '../interfaces/tokens.interface.js';
 import { IUserRequest } from '../../common/interfaces/user-request.interface.js';
+import { EncryptionService } from '../../encryption/services/encryption.service.js';
 
 @Injectable()
 export class AuthService {
@@ -37,6 +37,7 @@ export class AuthService {
     private readonly jwtToolsSerivce: JwtToolsService,
     private readonly usersService: UsersService,
     private readonly emailService: EmailService,
+    private readonly encryptionService: EncryptionService,
   ) {}
 
   // -------------------------------------------------------------
@@ -66,14 +67,9 @@ export class AuthService {
 
     const tokens = await this.createPairTokens(newUser.id, newUser.email);
 
-    const hashedRefreshToken = bcrypt.hashSync(
-      tokens.refreshToken,
-      this.saltRounds,
-    );
-
     this.tokensService.save({
       userId: newUser.id,
-      value: hashedRefreshToken,
+      value: tokens.refreshToken,
       fingerprint: fingerprint,
     });
 
@@ -116,14 +112,9 @@ export class AuthService {
 
     const tokens = await this.createPairTokens(user.id, user.email);
 
-    const hashedRefreshToken = bcrypt.hashSync(
-      tokens.refreshToken,
-      this.saltRounds,
-    );
-
     this.tokensService.save({
       userId: user.id,
-      value: hashedRefreshToken,
+      value: tokens.refreshToken,
       fingerprint: fingerprint,
     });
 
@@ -140,13 +131,10 @@ export class AuthService {
 
   // -------------------------------------------------------------
   public async validate(
-    accessToken: string,
+    token: string,
     jwtSecret: string,
   ): Promise<IUserRequest> {
-    const { userId } = await this.jwtToolsSerivce.decodeToken(
-      accessToken,
-      jwtSecret,
-    );
+    const { userId } = await this.jwtToolsSerivce.decodeToken(token, jwtSecret);
 
     const user = await this.usersService.findOneFor({ id: userId });
 
@@ -171,7 +159,6 @@ export class AuthService {
     }
 
     const payload: ITokenPayload = {
-      unique: randomUUID(),
       sub: user.id,
       email: email,
     };
@@ -182,23 +169,30 @@ export class AuthService {
       '5m',
     );
 
-    const hashedRecoveryToken = bcrypt.hashSync(recoveryToken, this.saltRounds);
+    const encryptRecoveryToken = await this.encryptionService.encrypt(
+      recoveryToken,
+    );
+
+    const hashedRecoveryToken = bcrypt.hashSync(
+      encryptRecoveryToken,
+      this.saltRounds,
+    );
 
     this.usersService.save({
       ...user,
       recoveryToken: hashedRecoveryToken,
     });
 
-    const context = {
+    const contextForEmail = {
       nickname: user.nickname,
       recoveryToken: recoveryToken,
     };
 
-    this.emailService.sendTemplete(
+    this.emailService.sendTempleteByEmail(
       email,
       TemplatesEnum.RECOVERY_PASSWORD,
       TemplatesDiscriptionEnum.RECOVERY_PASSWORD,
-      context,
+      contextForEmail,
     );
   }
 
@@ -220,8 +214,12 @@ export class AuthService {
       throw new UnauthorizedException('🚨 token is invalid!');
     }
 
-    const recoveryTokenIsValid = bcrypt.compareSync(
+    const encryptRecoveryToken = await this.encryptionService.encrypt(
       recoveryToken,
+    );
+
+    const recoveryTokenIsValid = bcrypt.compareSync(
+      encryptRecoveryToken,
       user.recoveryToken,
     );
 
@@ -229,16 +227,12 @@ export class AuthService {
       throw new UnauthorizedException('🚨 token is invalid!');
     }
 
-    this.usersService.save({
-      id: user.id,
-      recoveryToken: null,
-    });
-
     const hashedPassword = bcrypt.hashSync(password, this.saltRounds);
 
     this.usersService.save({
       id: user.id,
       password: hashedPassword,
+      recoveryToken: null,
     });
   }
 
@@ -248,8 +242,12 @@ export class AuthService {
       userId: userId,
     });
 
+    const encryptRefreshToken = await this.encryptionService.encrypt(
+      refreshToken,
+    );
+
     const extractTokenFromDB = refreshTokensFromDB.find((token) =>
-      bcrypt.compareSync(refreshToken, token.value),
+      bcrypt.compareSync(encryptRefreshToken, token.value),
     );
 
     if (!extractTokenFromDB) {
@@ -269,10 +267,14 @@ export class AuthService {
       userId: userId,
     });
 
+    const encryptRefreshToken = await this.encryptionService.encrypt(
+      refreshToken,
+    );
+
     const refreshTokenIsValid = refreshTokensFromDB.find(
       (token) =>
         token.fingerprint === fingerprint &&
-        bcrypt.compareSync(refreshToken, token.value),
+        bcrypt.compareSync(encryptRefreshToken, token.value),
     );
 
     if (!refreshTokenIsValid) {
@@ -287,14 +289,9 @@ export class AuthService {
 
     const newTokens = await this.createPairTokens(user.id, user.email);
 
-    const hashedRefreshToken = bcrypt.hashSync(
-      newTokens.refreshToken,
-      this.saltRounds,
-    );
-
     this.tokensService.save({
       ...refreshTokenIsValid,
-      value: hashedRefreshToken,
+      value: newTokens.refreshToken,
       fingerprint,
     });
 
@@ -334,10 +331,10 @@ export class AuthService {
     );
 
     const payloadForRefreshToken: ITokenPayload = {
-      unique: randomUUID(),
       sub: userId,
       email: email,
     };
+
     const refreshToken = await this.jwtToolsSerivce.createToken(
       payloadForRefreshToken,
       this.JWT_REFRESH_SECRET_KEY,

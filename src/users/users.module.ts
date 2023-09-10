@@ -6,16 +6,19 @@ import { UsersController } from './controllers/users.controller.js';
 import { EmailModule } from '../mailer/email.module.js';
 import { JwtToolsModule } from '../jwt/jwt-tools.module.js';
 import { AuthModule } from '../auth/auth.module.js';
+import { EncryptionModule } from '../encryption/encryption.module.js';
+import { ConfirmationTokenGuard } from './guards/confirmation-token.guard.js';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([User]),
     EmailModule,
     JwtToolsModule,
+    EncryptionModule,
     forwardRef(() => AuthModule),
   ],
   controllers: [UsersController],
-  providers: [UsersService],
+  providers: [UsersService, ConfirmationTokenGuard],
   exports: [UsersService],
 })
 export class UsersModule {}

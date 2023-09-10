@@ -10,7 +10,7 @@ export class EmailService {
 
   constructor(private readonly mailerService: MailerService) {}
 
-  public async sendTemplete(
+  public async sendTempleteByEmail(
     email: string,
     template: TemplatesEnum,
     templateDiscription: TemplatesDiscriptionEnum,

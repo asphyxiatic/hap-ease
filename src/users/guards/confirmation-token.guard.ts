@@ -1,13 +1,15 @@
 import {
   CanActivate,
   ExecutionContext,
+  Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { AuthService } from '../../auth/services/auth.service.js';
 import config from '../../config/config.js';
 
+@Injectable()
 export class ConfirmationTokenGuard implements CanActivate {
-  constructor(private authService: AuthService) {}
+  constructor(private readonly authService: AuthService) {}
 
   async canActivate(ctx: ExecutionContext): Promise<boolean> {
     const request = ctx.switchToHttp().getRequest();
