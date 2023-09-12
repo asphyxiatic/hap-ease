@@ -4,7 +4,6 @@ import {
   Delete,
   Patch,
   Post,
-  Req,
   UseGuards,
 } from '@nestjs/common';
 import { AuthService } from '../services/auth.service.js';
@@ -22,6 +21,9 @@ import { GetCurrentUser } from '../../common/decorators/get-current-user.js';
 import { RecoveryTokenGuard } from '../guards/recovery-token.guard.js';
 import { IUserRequest } from '../../common/interfaces/user-request.interface.js';
 import { GetFingerprints } from '../decorators/get-fingerprints.decorator.js';
+import { SignIn2FAResponseDto } from '../dto/sign-in-2fa-response.dto.js';
+import { SignIn2FADto } from '../dto/sign-in-2fa.dto.js';
+import { TwoFactorAuthGuard } from '../guards/2fa-auth.guard.js';
 
 @SkipAuth()
 @Controller('auth')
@@ -40,8 +42,18 @@ export class AuthController {
   async signIn(
     @Body() credentials: SignInDto,
     @GetFingerprints() fingerprint: string,
-  ): Promise<SignInResponseDto> {
+  ): Promise<SignInResponseDto | SignIn2FAResponseDto> {
     return this.authService.signIn({ ...credentials, fingerprint });
+  }
+
+  @Post('sign-in-2fa')
+  @UseGuards(TwoFactorAuthGuard)
+  async signIn2FA(
+    @Body() { code }: SignIn2FADto,
+    @GetCurrentUser() user: IUserRequest,
+    @GetFingerprints() fingerprint: string,
+  ): Promise<SignInResponseDto> {
+    return this.authService.signIn2FA(code, user, fingerprint);
   }
 
   @Post('refresh-tokens')
@@ -73,10 +85,15 @@ export class AuthController {
   @Patch('update-password')
   @UseGuards(RecoveryTokenGuard)
   async updatePassword(
-    @Body() { password }: UpdatePasswordDto,
+    @Body() { password, code }: UpdatePasswordDto,
     @GetToken('rect') recoveryToken: string,
     @GetCurrentUser() { userId }: IUserRequest,
   ): Promise<void> {
-    return this.authService.updatePassword(password, recoveryToken, userId);
+    return this.authService.updatePassword(
+      password,
+      code,
+      recoveryToken,
+      userId,
+    );
   }
 }

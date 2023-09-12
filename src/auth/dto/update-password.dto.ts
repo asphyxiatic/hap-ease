@@ -7,4 +7,9 @@ export class UpdatePasswordDto {
   @IsString()
   @IsNotEmpty()
   password!: string;
+
+  @Length(6)
+  @Type(() => String)
+  @IsString()
+  code?: string | undefined;
 }

@@ -7,6 +7,7 @@ import {
 } from 'typeorm';
 import { BaseEntity } from '../../common/entities/base.entity.js';
 import { Token } from '../../tokens/entities/token.entity.js';
+import config from '../../config/config.js';
 
 const tableName = 'users';
 
@@ -18,30 +19,32 @@ export class User extends BaseEntity {
   @Column('varchar')
   email!: string;
 
-  @Column({ default: null, type: 'varchar' })
-  phone!: string | null;
+  @Column({ type: 'varchar', nullable: true })
+  phone?: string | null;
 
   @Column('varchar')
   nickname!: string;
 
-  @Column({
-    type: 'varchar',
-    default:
-      'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQLzIeJzBVRDB4jmiqxlbFP17qBL84lX9hyAQ&usqp=CAU',
-  })
+  @Column({ type: 'varchar', default: config.DEFAULT_USER_AVATAR })
   avatar!: string;
 
-  @Column({ type: 'varchar', default: null })
-  password!: string | null;
+  @Column({ type: 'varchar', nullable: true })
+  password?: string;
 
   @Column({ type: 'bool', default: false })
   active!: boolean;
 
-  @Column({ name: 'recovery_token', default: null, type: 'varchar' })
-  recoveryToken!: string | null;
+  @Column({ name: '2fa-secret', type: 'varchar', nullable: true })
+  twoFactorAuthenticationSecret?: string | null;
 
-  @Column({ name: 'confirmation_token', default: null, type: 'varchar' })
-  confirmationToken!: string | null;
+  @Column({ name: '2fa-enabled', default: false })
+  isTwoFactorAuthenticationEnabled!: boolean;
+
+  @Column({ name: 'recovery_token', type: 'varchar', nullable: true })
+  recoveryToken?: string | null;
+
+  @Column({ name: 'confirmation_token', type: 'varchar', nullable: true })
+  confirmationToken?: string | null;
 
   @OneToMany(() => Token, (token) => token.user)
   tokens!: Relation<Token[]>;

@@ -24,7 +24,7 @@ export class AuthAccessGuard implements CanActivate {
 
     const request = ctx.switchToHttp().getRequest();
 
-    const token = this.authService.extractTokenFromHeader(request);
+    const token = await this.authService.extractTokenFromHeader(request);
 
     const user = await this.authService.validate(
       token,

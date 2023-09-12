@@ -5,7 +5,6 @@ import { User } from './entities/user.entity.js';
 import { UsersController } from './controllers/users.controller.js';
 import { EmailModule } from '../mailer/email.module.js';
 import { JwtToolsModule } from '../jwt/jwt-tools.module.js';
-import { AuthModule } from '../auth/auth.module.js';
 import { EncryptionModule } from '../encryption/encryption.module.js';
 import { ConfirmationTokenGuard } from './guards/confirmation-token.guard.js';
 
@@ -15,7 +14,6 @@ import { ConfirmationTokenGuard } from './guards/confirmation-token.guard.js';
     EmailModule,
     JwtToolsModule,
     EncryptionModule,
-    forwardRef(() => AuthModule),
   ],
   controllers: [UsersController],
   providers: [UsersService, ConfirmationTokenGuard],

@@ -22,8 +22,8 @@ export class Token {
   @Column({ name: 'user_id', type: 'uuid' })
   userId!: User['id'];
 
-  @Column({ name: 'fingerprint', unique: true, type: 'varchar', default: null })
-  fingerprint!: string | null;
+  @Column({ name: 'fingerprint', type: 'varchar' })
+  fingerprint!: string;
 
   @ManyToOne(() => User, (user) => user.tokens, {
     onDelete: 'CASCADE',

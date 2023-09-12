@@ -2,7 +2,6 @@ import {
   MiddlewareConsumer,
   Module,
   NestModule,
-  forwardRef,
 } from '@nestjs/common';
 import { AuthService } from './services/auth.service.js';
 import { AuthController } from './controllers/auth.controller.js';
@@ -20,6 +19,9 @@ import { GoogleStrategy } from './strategies/google.strategy.js';
 import { GoogleOAuthGuard } from './guards/google-oauth.guard.js';
 import { FingerprintsMiddleware } from './middlewares/fingerprints.middleware.js';
 import { EncryptionModule } from '../encryption/encryption.module.js';
+import { TwoFactorAuthController } from './controllers/two-factor-auth.controller.js';
+import { TwoFactorAuthService } from './services/two-factor-auth.service.js';
+import { TwoFactorAuthGuard } from './guards/2fa-auth.guard.js';
 
 @Module({
   imports: [
@@ -27,22 +29,25 @@ import { EncryptionModule } from '../encryption/encryption.module.js';
     EmailModule,
     JwtToolsModule,
     EncryptionModule,
-    forwardRef(() => UsersModule),
+    UsersModule,
   ],
-  controllers: [AuthController, GoogleOAuthController],
+  controllers: [AuthController, GoogleOAuthController, TwoFactorAuthController],
   providers: [
     {
       provide: APP_GUARD,
       useClass: AuthAccessGuard,
     },
     GoogleOAuthGuard,
-    AuthService,
-    GoogleStrategy,
     RefreshTokenGuard,
     RecoveryTokenGuard,
+    TwoFactorAuthGuard,
+    AuthService,
+    TwoFactorAuthService,
     GoogleOAuthService,
+    GoogleStrategy,
   ],
-  exports: [AuthService],
+
+  exports: [AuthService, TwoFactorAuthService],
 })
 export class AuthModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

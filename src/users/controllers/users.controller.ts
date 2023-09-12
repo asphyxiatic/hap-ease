@@ -28,9 +28,9 @@ export class UsersController {
 
   @Patch('change-password')
   async changePassword(
-    @Body() { newPassword }: ChangePasswordDto,
+    @Body() { newPassword, code }: ChangePasswordDto,
     @GetCurrentUser() { userId }: IUserRequest,
   ): Promise<void> {
-    return this.userService.changePassword(newPassword, userId);
+    return this.userService.changePassword(newPassword, code, userId);
   }
 }

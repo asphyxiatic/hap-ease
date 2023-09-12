@@ -1,8 +1,12 @@
 import {
   BadRequestException,
+  ForbiddenException,
+  Inject,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
+  OnModuleInit,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FindOptionsWhere, Repository } from 'typeorm';
@@ -15,9 +19,14 @@ import { EmailService } from '../../mailer/services/email.service.js';
 import { TemplatesDiscriptionEnum } from '../../mailer/enums/templates-discription.enum.js';
 import { TemplatesEnum } from '../../mailer/enums/templates.enum.js';
 import { EncryptionService } from '../../encryption/services/encryption.service.js';
+import { IContextForConfirmationEmail } from '../interfaces/context-mail-for-confirmation-email.interface.js';
+import { TwoFactorAuthService } from '../../auth/services/two-factor-auth.service.js';
+import { ModuleRef } from '@nestjs/core';
 
 @Injectable()
-export class UsersService {
+export class UsersService implements OnModuleInit {
+  private twoFactorAuthService!: TwoFactorAuthService;
+
   private readonly saltRounds = 5;
   private readonly JWT_CONFIRMATION_SECRET_KEY =
     config.JWT_CONFIRMATION_SECRET_KEY;
@@ -28,7 +37,14 @@ export class UsersService {
     private readonly jwtToolsSerivce: JwtToolsService,
     private readonly emailService: EmailService,
     private readonly encryptionService: EncryptionService,
+    private readonly moduleRef: ModuleRef,
   ) {}
+
+  onModuleInit() {
+    this.twoFactorAuthService = this.moduleRef.get(TwoFactorAuthService, {
+      strict: false,
+    });
+  }
 
   // -------------------------------------------------------------
   public async findOneFor(
@@ -50,6 +66,7 @@ export class UsersService {
   // -------------------------------------------------------------
   public async changePassword(
     newPassword: string,
+    code: string | undefined,
     userId: string,
   ): Promise<void> {
     const user = await this.findOneFor({ id: userId });
@@ -58,12 +75,34 @@ export class UsersService {
       throw new NotFoundException('🚨 user not found!');
     }
 
+    if (!user.password) {
+      throw new BadRequestException('🚨 password change error!');
+    }
+
+    if (user.isTwoFactorAuthenticationEnabled) {
+      if (!code) {
+        throw new ForbiddenException('🚨 wrong authentication code!');
+      }
+
+      const codeIsValid =
+        await this.twoFactorAuthService.twoFactorAuthCodeValid(code, userId);
+
+      if (!codeIsValid) {
+        throw new UnauthorizedException('🚨 wrong authentication code!');
+      }
+    }
+
     const hashedPassword = bcrypt.hashSync(newPassword, this.saltRounds);
 
     this.save({
       id: user.id,
       password: hashedPassword,
     });
+  }
+
+  // -------------------------------------------------------------
+  public async turnOnTwoFactorAuth(userId: string): Promise<void> {
+    await this.save({ id: userId, isTwoFactorAuthenticationEnabled: true });
   }
 
   // -------------------------------------------------------------
@@ -103,7 +142,7 @@ export class UsersService {
       confirmationToken: hashedConfirmationToken,
     });
 
-    const contextForEmail = {
+    const contextForEmail: IContextForConfirmationEmail = {
       nickname: user.nickname,
       confirmationToken: confirmationToken,
     };

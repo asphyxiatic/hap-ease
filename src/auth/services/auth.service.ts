@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -24,6 +25,9 @@ import { Request } from 'express';
 import { ITokens } from '../interfaces/tokens.interface.js';
 import { IUserRequest } from '../../common/interfaces/user-request.interface.js';
 import { EncryptionService } from '../../encryption/services/encryption.service.js';
+import { SignIn2FAResponseDto } from '../dto/sign-in-2fa-response.dto.js';
+import { TwoFactorAuthService } from './two-factor-auth.service.js';
+import { IContextForRecovery } from '../interfaces/context-mail-for-recovery.interface.js';
 
 @Injectable()
 export class AuthService {
@@ -38,6 +42,7 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly emailService: EmailService,
     private readonly encryptionService: EncryptionService,
+    private readonly twoFactorAuthService: TwoFactorAuthService,
   ) {}
 
   // -------------------------------------------------------------
@@ -89,11 +94,15 @@ export class AuthService {
     email,
     password,
     fingerprint,
-  }: SignInDto & { fingerprint: string }): Promise<SignInResponseDto> {
+  }: SignInDto & { fingerprint: string }): Promise<
+    SignInResponseDto | SignIn2FAResponseDto
+  > {
     const user = await this.usersService.findOneFor({ email: email });
 
     if (!user) {
-      throw new NotFoundException('🚨 user not found!');
+      throw new BadRequestException(
+        '🚨 invalid login information or password!',
+      );
     }
 
     if (!user.password) {
@@ -110,10 +119,59 @@ export class AuthService {
       );
     }
 
+    if (user.isTwoFactorAuthenticationEnabled) {
+      const twoFactorAuthTicketPayload: ITokenPayload = {
+        sub: user.id,
+        email: user.email,
+      };
+
+      const twoFactorAuthTicket = await this.jwtToolsSerivce.createToken(
+        twoFactorAuthTicketPayload,
+        config.JWT_2FA_SECRET_KEY,
+        '5m',
+      );
+
+      return { ticket: twoFactorAuthTicket };
+    }
+
     const tokens = await this.createPairTokens(user.id, user.email);
 
     this.tokensService.save({
       userId: user.id,
+      value: tokens.refreshToken,
+      fingerprint: fingerprint,
+    });
+
+    return {
+      user: {
+        email: user.email,
+        nickname: user.nickname,
+        avatar: user.avatar,
+      },
+      access_token: tokens.accessToken,
+      refresh_token: tokens.refreshToken,
+    };
+  }
+
+  // -------------------------------------------------------------
+  public async signIn2FA(
+    code: string,
+    user: IUserRequest,
+    fingerprint: string,
+  ): Promise<SignInResponseDto> {
+    const codeIsValid = await this.twoFactorAuthService.twoFactorAuthCodeValid(
+      code,
+      user.userId,
+    );
+
+    if (!codeIsValid) {
+      throw new UnauthorizedException('🚨 wrong authentication code!');
+    }
+
+    const tokens = await this.createPairTokens(user.userId, user.email);
+
+    this.tokensService.save({
+      userId: user.userId,
       value: tokens.refreshToken,
       fingerprint: fingerprint,
     });
@@ -158,6 +216,10 @@ export class AuthService {
       throw new NotFoundException('🚨 user not found');
     }
 
+    if (!user.password) {
+      throw new BadRequestException('🚨 password recovery error!');
+    }
+
     const payload: ITokenPayload = {
       sub: user.id,
       email: email,
@@ -183,9 +245,16 @@ export class AuthService {
       recoveryToken: hashedRecoveryToken,
     });
 
-    const contextForEmail = {
+    let twoFactorEnabled = false;
+
+    if (user.isTwoFactorAuthenticationEnabled) {
+      twoFactorEnabled = true;
+    }
+
+    const contextForEmail: IContextForRecovery = {
       nickname: user.nickname,
       recoveryToken: recoveryToken,
+      twoFactorEnabled: twoFactorEnabled,
     };
 
     this.emailService.sendTempleteByEmail(
@@ -199,6 +268,7 @@ export class AuthService {
   // -------------------------------------------------------------
   public async updatePassword(
     password: string,
+    code: string | undefined,
     recoveryToken: string,
     userId: string,
   ): Promise<void> {
@@ -225,6 +295,19 @@ export class AuthService {
 
     if (!recoveryTokenIsValid) {
       throw new UnauthorizedException('🚨 token is invalid!');
+    }
+
+    if (user.isTwoFactorAuthenticationEnabled) {
+      if (!code) {
+        throw new ForbiddenException('🚨 wrong authentication code!');
+      }
+
+      const codeIsValid =
+        await this.twoFactorAuthService.twoFactorAuthCodeValid(code, userId);
+
+      if (!codeIsValid) {
+        throw new UnauthorizedException('🚨 wrong authentication code!');
+      }
     }
 
     const hashedPassword = bcrypt.hashSync(password, this.saltRounds);
@@ -307,7 +390,7 @@ export class AuthService {
   }
 
   // -------------------------------------------------------------
-  public extractTokenFromHeader(request: Request): string {
+  public async extractTokenFromHeader(request: Request): Promise<string> {
     const [type, token] = request.headers.authorization?.split(' ') ?? [];
     if (type !== 'Bearer') {
       throw new UnauthorizedException('🚨 token not found!');

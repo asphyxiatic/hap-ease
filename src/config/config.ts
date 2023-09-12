@@ -10,9 +10,12 @@ export default cleanEnv(process.env, {
   JWT_REFRESH_SECRET_KEY: str(),
   JWT_RECOVERY_SECRET_KEY: str(),
   JWT_CONFIRMATION_SECRET_KEY: str(),
+  JWT_2FA_SECRET_KEY: str(),
   MAIL_TRANSPORT: str(),
   MAIL_FROM_NAME: str(),
   GOOGLE_AUTH_CLIENT_ID: str(),
   GOOGLE_AUTH_CLIENT_SECRET: str(),
   SESSION_SECRET: str(),
+  TWO_FACTOR_AUTHENTICATION_APP_NAME: str(),
+  DEFAULT_USER_AVATAR: str(),
 });
