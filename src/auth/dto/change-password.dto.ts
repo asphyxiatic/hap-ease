@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsNotEmpty, IsString, Length } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, Length } from 'class-validator';
 
 export class ChangePasswordDto {
   @Length(8, 25)
@@ -11,5 +11,6 @@ export class ChangePasswordDto {
   @Length(6)
   @Type(() => String)
   @IsString()
+  @IsOptional()
   code?: string | undefined;
 }

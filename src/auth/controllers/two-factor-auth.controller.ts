@@ -11,6 +11,7 @@ import { IUserRequest } from '../../common/interfaces/user-request.interface.js'
 import { Response } from 'express';
 import { TurnOnTwoFactorAuthDto } from '../dto/turn-on-2fa-auth.dto.js';
 import { UsersService } from '../../users/services/users.service.js';
+import { TurnOffTwoFactorAuthDto } from '../dto/turn-off-2fa-auth.dto.js';
 
 @Controller('2fa')
 export class TwoFactorAuthController {
@@ -35,6 +36,28 @@ export class TwoFactorAuthController {
   async turnOnTwoFactorAuthentication(
     @Body() { code }: TurnOnTwoFactorAuthDto,
     @GetCurrentUser() { userId }: IUserRequest,
+  ): Promise<string> {
+    const codeIsValid = await this.twoFactorAuthService.twoFactorAuthCodeValid(
+      code,
+      userId,
+    );
+
+    if (!codeIsValid) {
+      throw new UnauthorizedException('🚨 wrong authentication code!');
+    }
+
+    const reservationCode =
+      await this.twoFactorAuthService.generateReservationCode2FA(userId);
+
+    await this.userService.turnOnTwoFactorAuth(userId);
+
+    return reservationCode;
+  }
+
+  @Post('turn-off')
+  async turnOffTwoFactorAuthentication(
+    @Body() { code }: TurnOffTwoFactorAuthDto,
+    @GetCurrentUser() { userId }: IUserRequest,
   ): Promise<void> {
     const codeIsValid = await this.twoFactorAuthService.twoFactorAuthCodeValid(
       code,
@@ -45,6 +68,6 @@ export class TwoFactorAuthController {
       throw new UnauthorizedException('🚨 wrong authentication code!');
     }
 
-    await this.userService.turnOnTwoFactorAuth(userId);
+    await this.userService.turnOffTwoFactorAuth(userId);
   }
 }

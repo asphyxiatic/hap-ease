@@ -28,6 +28,7 @@ import { EncryptionService } from '../../encryption/services/encryption.service.
 import { SignIn2FAResponseDto } from '../dto/sign-in-2fa-response.dto.js';
 import { TwoFactorAuthService } from './two-factor-auth.service.js';
 import { IContextForRecovery } from '../interfaces/context-mail-for-recovery.interface.js';
+import { plainToInstance } from 'class-transformer';
 
 @Injectable()
 export class AuthService {
@@ -72,13 +73,13 @@ export class AuthService {
 
     const tokens = await this.createPairTokens(newUser.id, newUser.email);
 
-    this.tokensService.save({
+    await this.tokensService.save({
       userId: newUser.id,
       value: tokens.refreshToken,
       fingerprint: fingerprint,
     });
 
-    return {
+    const userInfo = {
       user: {
         email: newUser.email,
         nickname: newUser.nickname,
@@ -87,6 +88,8 @@ export class AuthService {
       access_token: tokens.accessToken,
       refresh_token: tokens.refreshToken,
     };
+
+    return userInfo;
   }
 
   // -------------------------------------------------------------
@@ -131,18 +134,20 @@ export class AuthService {
         '5m',
       );
 
-      return { ticket: twoFactorAuthTicket };
+      const signInResponse = { ticket: twoFactorAuthTicket };
+
+      return signInResponse;
     }
 
     const tokens = await this.createPairTokens(user.id, user.email);
 
-    this.tokensService.save({
+    await this.tokensService.save({
       userId: user.id,
       value: tokens.refreshToken,
       fingerprint: fingerprint,
     });
 
-    return {
+    const signInResponse = {
       user: {
         email: user.email,
         nickname: user.nickname,
@@ -151,6 +156,8 @@ export class AuthService {
       access_token: tokens.accessToken,
       refresh_token: tokens.refreshToken,
     };
+
+    return signInResponse;
   }
 
   // -------------------------------------------------------------
@@ -170,13 +177,13 @@ export class AuthService {
 
     const tokens = await this.createPairTokens(user.userId, user.email);
 
-    this.tokensService.save({
+    await this.tokensService.save({
       userId: user.userId,
       value: tokens.refreshToken,
       fingerprint: fingerprint,
     });
 
-    return {
+    const userInfo = {
       user: {
         email: user.email,
         nickname: user.nickname,
@@ -185,6 +192,8 @@ export class AuthService {
       access_token: tokens.accessToken,
       refresh_token: tokens.refreshToken,
     };
+
+    return userInfo;
   }
 
   // -------------------------------------------------------------
@@ -240,16 +249,16 @@ export class AuthService {
       this.saltRounds,
     );
 
-    this.usersService.save({
+    await this.usersService.save({
       ...user,
       recoveryToken: hashedRecoveryToken,
     });
 
-    let twoFactorEnabled = false;
+    let twoFactorEnabled;
 
-    if (user.isTwoFactorAuthenticationEnabled) {
-      twoFactorEnabled = true;
-    }
+    user.isTwoFactorAuthenticationEnabled
+      ? (twoFactorEnabled = true)
+      : (twoFactorEnabled = false);
 
     const contextForEmail: IContextForRecovery = {
       nickname: user.nickname,
@@ -257,7 +266,7 @@ export class AuthService {
       twoFactorEnabled: twoFactorEnabled,
     };
 
-    this.emailService.sendTempleteByEmail(
+    await this.emailService.sendTempleteByEmail(
       email,
       TemplatesEnum.RECOVERY_PASSWORD,
       TemplatesDiscriptionEnum.RECOVERY_PASSWORD,
@@ -312,10 +321,47 @@ export class AuthService {
 
     const hashedPassword = bcrypt.hashSync(password, this.saltRounds);
 
-    this.usersService.save({
+    await this.usersService.save({
       id: user.id,
       password: hashedPassword,
       recoveryToken: null,
+    });
+  }
+
+  // -------------------------------------------------------------
+  public async changePassword(
+    newPassword: string,
+    code: string | undefined,
+    userId: string,
+  ): Promise<void> {
+    const user = await this.usersService.findOneFor({ id: userId });
+
+    if (!user) {
+      throw new NotFoundException('🚨 user not found!');
+    }
+
+    if (!user.password) {
+      throw new BadRequestException('🚨 password change error!');
+    }
+
+    if (user.isTwoFactorAuthenticationEnabled) {
+      if (!code) {
+        throw new ForbiddenException('🚨 wrong authentication code!');
+      }
+
+      const codeIsValid =
+        await this.twoFactorAuthService.twoFactorAuthCodeValid(code, userId);
+
+      if (!codeIsValid) {
+        throw new UnauthorizedException('🚨 wrong authentication code!');
+      }
+    }
+
+    const hashedPassword = bcrypt.hashSync(newPassword, this.saltRounds);
+
+    await this.usersService.save({
+      id: user.id,
+      password: hashedPassword,
     });
   }
 
@@ -337,7 +383,7 @@ export class AuthService {
       throw new UnauthorizedException('🚨 token is invalid!');
     }
 
-    this.tokensService.delete(extractTokenFromDB.value);
+    await this.tokensService.delete(extractTokenFromDB.value);
   }
 
   // -------------------------------------------------------------
@@ -372,13 +418,13 @@ export class AuthService {
 
     const newTokens = await this.createPairTokens(user.id, user.email);
 
-    this.tokensService.save({
+    await this.tokensService.save({
       ...refreshTokenIsValid,
       value: newTokens.refreshToken,
       fingerprint,
     });
 
-    return {
+    const userInfo = {
       user: {
         email: user.email,
         nickname: user.nickname,
@@ -387,6 +433,8 @@ export class AuthService {
       access_token: newTokens.accessToken,
       refresh_token: newTokens.refreshToken,
     };
+
+    return userInfo;
   }
 
   // -------------------------------------------------------------

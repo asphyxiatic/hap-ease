@@ -5,6 +5,7 @@ import { GoogleSignInResponseDto } from '../dto/google-sign-in-response.dto.js';
 import { AuthService } from './auth.service.js';
 import * as bcrypt from 'bcrypt';
 import { TokensService } from '../../tokens/services/tokens.service.js';
+import { plainToInstance } from 'class-transformer';
 
 @Injectable()
 export class GoogleOAuthService {
@@ -43,13 +44,13 @@ export class GoogleOAuthService {
         this.saltRounds,
       );
 
-      this.tokensService.save({
+      await this.tokensService.save({
         userId: newUser.id,
         value: hashedRefreshToken,
         fingerprint,
       });
 
-      return {
+      const userInfo = {
         user: {
           email: newUser.email,
           nickname: newUser.nickname,
@@ -58,6 +59,8 @@ export class GoogleOAuthService {
         access_token: tokens.accessToken,
         refresh_token: tokens.refreshToken,
       };
+
+      return userInfo;
     } else {
       if (user.password) {
         throw new ConflictException('🚨 user is already exist!');
@@ -71,13 +74,13 @@ export class GoogleOAuthService {
       this.saltRounds,
     );
 
-    this.tokensService.save({
+    await this.tokensService.save({
       userId: user.id,
       value: hashedRefreshToken,
       fingerprint,
     });
 
-    return {
+    const userInfo = {
       user: {
         email: user.email,
         nickname: user.nickname,
@@ -86,5 +89,7 @@ export class GoogleOAuthService {
       access_token: tokens.accessToken,
       refresh_token: tokens.refreshToken,
     };
+
+    return userInfo;
   }
 }

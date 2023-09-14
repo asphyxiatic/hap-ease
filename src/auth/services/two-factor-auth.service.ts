@@ -2,7 +2,6 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
-  OnModuleInit,
 } from '@nestjs/common';
 import { authenticator } from 'otplib';
 import config from '../../config/config.js';
@@ -10,17 +9,14 @@ import { UsersService } from '../../users/services/users.service.js';
 import { toFileStream } from 'qrcode';
 import { Response } from 'express';
 import { IUserRequest } from '../../common/interfaces/user-request.interface.js';
-import { ModuleRef } from '@nestjs/core';
+import { v4 as uuidv4 } from 'uuid';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
-export class TwoFactorAuthService implements OnModuleInit {
-  private userService!: UsersService;
+export class TwoFactorAuthService {
+  private readonly saltRounds = 5;
 
-  constructor(private readonly moduleRef: ModuleRef) {}
-
-  onModuleInit() {
-    this.userService = this.moduleRef.get(UsersService, { strict: false });
-  }
+  constructor(private readonly userService: UsersService) {}
 
   // -------------------------------------------------------------
   public async generateTwoFactorAuthenticationSecret(
@@ -34,7 +30,7 @@ export class TwoFactorAuthService implements OnModuleInit {
       secret,
     );
 
-    this.userService.save({
+    await this.userService.save({
       id: user.userId,
       twoFactorAuthenticationSecret: secret,
     });
@@ -69,5 +65,21 @@ export class TwoFactorAuthService implements OnModuleInit {
       token: code,
       secret: user.twoFactorAuthenticationSecret,
     });
+  }
+
+  public async generateReservationCode2FA(userId: string): Promise<string> {
+    const reservationCode = uuidv4().substring(0, 6);
+
+    const hashedReservationCode = bcrypt.hashSync(
+      reservationCode,
+      this.saltRounds,
+    );
+
+    await this.userService.save({
+      id: userId,
+      twoFactorReservationCode: hashedReservationCode,
+    });
+
+    return reservationCode;
   }
 }

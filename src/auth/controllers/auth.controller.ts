@@ -24,12 +24,14 @@ import { GetFingerprints } from '../decorators/get-fingerprints.decorator.js';
 import { SignIn2FAResponseDto } from '../dto/sign-in-2fa-response.dto.js';
 import { SignIn2FADto } from '../dto/sign-in-2fa.dto.js';
 import { TwoFactorAuthGuard } from '../guards/2fa-auth.guard.js';
+import { ChangePasswordDto } from '../dto/change-password.dto.js';
 
-@SkipAuth()
+
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @SkipAuth()
   @Post('sign-up')
   async signUp(
     @Body() credentials: SignUpDto,
@@ -38,6 +40,7 @@ export class AuthController {
     return this.authService.signUp({ ...credentials, fingerprint });
   }
 
+  @SkipAuth()
   @Post('sign-in')
   async signIn(
     @Body() credentials: SignInDto,
@@ -46,6 +49,7 @@ export class AuthController {
     return this.authService.signIn({ ...credentials, fingerprint });
   }
 
+  @SkipAuth()
   @Post('sign-in-2fa')
   @UseGuards(TwoFactorAuthGuard)
   async signIn2FA(
@@ -56,6 +60,7 @@ export class AuthController {
     return this.authService.signIn2FA(code, user, fingerprint);
   }
 
+  @SkipAuth()
   @Post('refresh-tokens')
   @UseGuards(RefreshTokenGuard)
   async refreshTokens(
@@ -66,6 +71,15 @@ export class AuthController {
     return this.authService.refreshTokens(refreshToken, userId, fingerprint);
   }
 
+  @Patch('change-password')
+  async changePassword(
+    @Body() { newPassword, code }: ChangePasswordDto,
+    @GetCurrentUser() { userId }: IUserRequest,
+  ): Promise<void> {
+    return this.authService.changePassword(newPassword, code, userId);
+  }
+
+  @SkipAuth()
   @Delete('log-out')
   @UseGuards(RefreshTokenGuard)
   async logOut(
@@ -75,6 +89,7 @@ export class AuthController {
     return this.authService.logOut(refreshToken, userId);
   }
 
+  @SkipAuth()
   @Post('recovery-password')
   async recoveryPassword(
     @Body() { email }: RecoveryPasswordDto,
@@ -82,6 +97,7 @@ export class AuthController {
     return this.authService.recoveryPassword(email);
   }
 
+  @SkipAuth()
   @Patch('update-password')
   @UseGuards(RecoveryTokenGuard)
   async updatePassword(
